@@ -4,6 +4,7 @@ import 'package:foodie_padi_apps/services/auth_services.dart';
 import 'package:foodie_padi_apps/widgets/passwordfield.dart';
 import 'package:foodie_padi_apps/widgets/textform_field.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/signup_provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:foodie_padi_apps/constants/app_colors.dart';
@@ -145,6 +146,9 @@ class SignUpScreen extends StatelessWidget {
                                         email: emailController.text,
                                         phone: phoneController.text,
                                         password: passwordController.text);
+                                    final prefs =
+                                        await SharedPreferences.getInstance();
+                                    await prefs.setBool('hasAccount', true);
                                     await Navigator.pushReplacement(
                                         context,
                                         MaterialPageRoute(
