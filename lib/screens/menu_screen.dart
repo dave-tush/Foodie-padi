@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'menu_provider.dart';
-import 'reviews_page.dart';
+
+import '../providers/menu_provider.dart';
+import 'review_screen.dart';
 
 class MenuPage extends StatelessWidget {
   @override
@@ -110,8 +111,7 @@ class MenuPage extends StatelessWidget {
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                  padding: EdgeInsets.symmetric(horizontal: 30, vertical: 12),
                 ),
                 onPressed: () {
                   // TODO: Add to cart logic here
