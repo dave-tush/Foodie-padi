@@ -1,178 +1,247 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:foodie_padi_apps/core/constants/app_assets.dart';
+import 'package:foodie_padi_apps/core/constants/app_text_style.dart';
+import 'package:foodie_padi_apps/core/constants/gaps.dart';
 import 'package:foodie_padi_apps/services/auth_services.dart';
+import 'package:foodie_padi_apps/widgets/button.dart';
 import 'package:foodie_padi_apps/widgets/passwordfield.dart';
 import 'package:foodie_padi_apps/widgets/textform_field.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../core/constants/sizes.dart';
+import '../models/user_model.dart';
+import '../providers/role_provider.dart';
 import '../providers/signup_provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:foodie_padi_apps/constants/app_colors.dart';
+import 'package:foodie_padi_apps/core/constants/app_colors.dart';
 
+import '../providers/user_provider.dart';
 import 'selection_screen.dart';
 
-class SignUpScreen extends StatelessWidget {
-  final TextEditingController fullNameController = TextEditingController();
+class SignupScreen extends StatefulWidget {
+  const SignupScreen({super.key});
+
+  @override
+  State<SignupScreen> createState() => _SignupScreenState();
+}
+
+class _SignupScreenState extends State<SignupScreen> {
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController emailController = TextEditingController();
-  final TextEditingController phoneController = TextEditingController();
+  final TextEditingController fullNameController = TextEditingController();
+  final TextEditingController phoneNumberController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController =
       TextEditingController();
-  final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
 
-  SignUpScreen({super.key});
+  @override
+  void dispose() {
+    emailController.dispose();
+    fullNameController.dispose();
+    phoneNumberController.dispose();
+    passwordController.dispose();
+    confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  void _validateAndSubmit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      if (passwordController.text != confirmPasswordController.text) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Passwords do not match")),
+          );
+        }
+        setState(() => _isLoading = false);
+        return;
+      }
+      final AuthServices authServices = AuthServices();
+      final results = await authServices.signUp(
+        email: emailController.text,
+        name: fullNameController.text,
+        phone: phoneNumberController.text,
+        password: passwordController.text,
+      );
+      final userData = results['user'];
+      if (userData == null || results['accessToken'] == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Sign Up failed: Invalid response")),
+          );
+        }
+        setState(() => _isLoading = false);
+        return;
+      }
+      final user = User.fromJson(results['user'], results['accessToken']);
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      await userProvider.saveUsersToLocal(
+        user,
+        results['accessToken'],
+        results['refreshToken'] ?? '',
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Sign Up successful!")),
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => ChooseRoleScreen()),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Sign Up failed: ${e.toString()}")),
+        );
+      }
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<SignUpProvider>(context);
-
     return Scaffold(
         backgroundColor: AppColors.primaryOrange,
-        body: Stack(
-          children: [
-            Positioned(
-              top: -650.h,
+        body: Stack(children: [
+          Positioned(
+              top: 0,
               left: 0,
-              right: 0,
-              bottom: 0,
               child: Image.asset(
-                'assets/images/BG.png',
-                fit: BoxFit.contain,
-                height: 250.h,
+                AppAssets.bg,
+                fit: BoxFit.cover,
+                height: 0.75.sw,
+                width: 1.sw,
+              )),
+          SafeArea(
+            bottom: false,
+            child: Column(children: [
+              Gaps.vLarge,
+              Text(
+                'Sign Up',
+                style: AppTextStyle.heading.copyWith(
+                  color: Colors.white,
+                  fontSize: Sizes.fontExtraExtraLarge,
+                ),
               ),
-            ),
-            Padding(
-              padding: EdgeInsets.only(
-                  top: MediaQuery.of(context).size.height / 11.h),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    "Sign up",
-                    style: TextStyle(
-                      fontSize: 28.sp,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+              Gaps.vSmall,
+              Text('Please sign up to get started',
+                  style: AppTextStyle.body.copyWith(
+                    color: Colors.white,
+                    fontSize: Sizes.fontMedium,
+                  )),
+              Gaps.vSmall,
+              Expanded(
+                //flex: 3,
+                child: Container(
+                  padding: EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(20.r)),
+                  ),
+                  child: SingleChildScrollView(
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        children: [
+                          buildTextField(
+                            label: "Full Name",
+                            hint: "Name",
+                            controller: fullNameController,
+                            validatorText: "Full Name is required",
+                          ),
+                          buildTextField(
+                            label: "Email",
+                            hint: "Email",
+                            controller: emailController,
+                            validatorText: "Email is required",
+                            inputType: TextInputType.emailAddress,
+                          ),
+                          buildTextField(
+                            label: "Phone Number",
+                            hint: "Phone Number",
+                            controller: phoneNumberController,
+                            validatorText: "Phone Number is required",
+                            inputType: TextInputType.phone,
+                          ),
+                          buildPasswordField(
+                            label: "Password",
+                            controller: passwordController,
+                            obscure:
+                                false, // toggle handled inside provider if needed
+                            toggle: () {},
+                          ),
+                          buildPasswordField(
+                            label: "Confirm Password",
+                            controller: confirmPasswordController,
+                            obscure: false,
+                            toggle: () {},
+                          ),
+                          Gaps.vMedium,
+                          _buildLoginRedirect(),
+                          Gaps.vLarge,
+                          button(
+                            text: _isLoading
+                                ? SizedBox(
+                                    width: 24.w,
+                                    height: 24.h,
+                                    child: const CircularProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Text(
+                                    "Sign Up",
+                                    style: AppTextStyle.button.copyWith(
+                                      color: Colors.white,
+                                      fontSize: Sizes.fontMedium,
+                                    ),
+                                  ),
+                            onPressed: _isLoading ? () {} : _validateAndSubmit,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  SizedBox(height: 5.h),
-                  Text(
-                    "Please sign up to get started",
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  // SizedBox(height: 20.h),
-                  Container(
-                      height: MediaQuery.of(context).size.height / 1.1667.h,
-                      padding: EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          children: [
-                            buildTextField("Full Name", "Name",
-                                fullNameController, "Full Name is required"),
-                            buildTextField("Email", "Email", emailController,
-                                "Email is required",
-                                inputType: TextInputType.emailAddress),
-                            buildTextField("Phone Number", "Phone Number",
-                                phoneController, "Phone Number is required",
-                                inputType: TextInputType.phone),
-                            buildPasswordField(
-                              "Password",
-                              passwordController,
-                              provider.obscurePassword,
-                              provider.togglePasswordVisibility,
-                            ),
-                            buildPasswordField(
-                              "Confirm Password",
-                              confirmPasswordController,
-                              provider.obscureConfirmPassword,
-                              provider.toggleConfirmPasswordVisibility,
-                            ),
-                            SizedBox(height: 20),
-                            RichText(
-                              text: TextSpan(
-                                text: 'Already have an account? ',
-                                style: TextStyle(
-                                    color: Colors.black, fontSize: 16),
-                                children: [
-                                  TextSpan(
-                                    text: 'Login',
-                                    style: TextStyle(
-                                      color: AppColors.primaryOrange,
-                                      fontWeight: FontWeight.bold,
-                                      decoration: TextDecoration.underline,
-                                    ),
-                                    recognizer: TapGestureRecognizer()
-                                      ..onTap = () {
-                                        // Navigate to login screen
-                                        Navigator.pushNamed(context, '/login');
-                                      },
-                                  ),
-                                ],
-                              ),
-                            ),
-                            SizedBox(
-                              height: 10.h,
-                            ),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Color(0xFFFF6B00),
-                                minimumSize: Size(double.infinity, 50),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              onPressed: () async {
-                                if (_formKey.currentState!.validate()) {
-                                  try {
-                                    // Check if passwords match
-                                    if (passwordController.text !=
-                                        confirmPasswordController.text) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(SnackBar(
-                                        content:
-                                            Text("Passwords do not match!"),
-                                      ));
-                                      return;
-                                    }
-                                    final AuthServices authServices =
-                                        AuthServices();
-                                    final results = await authServices.signUp(
-                                        name: fullNameController.text,
-                                        email: emailController.text,
-                                        phone: phoneController.text,
-                                        password: passwordController.text);
-                                    final prefs =
-                                        await SharedPreferences.getInstance();
-                                    await prefs.setBool('hasAccount', true);
-                                    await Navigator.pushReplacement(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (context) =>
-                                                ChooseRoleScreen()));
-                                  } catch (e) {
-                                    ScaffoldMessenger.of(context)
-                                        .showSnackBar(SnackBar(
-                                      content: Text("Error: ${e.toString()}"),
-                                      backgroundColor: Colors.red,
-                                    ));
-                                  }
-                                }
-                              },
-                              child: Text("Sign Up",
-                                  style: TextStyle(fontSize: 16)),
-                            )
-                          ],
-                        ),
-                      )),
-                ],
-              ),
-            )
-          ],
-        ));
+                ),
+              )
+            ]),
+          )
+        ]));
   }
+}
+
+Widget _buildLoginRedirect() {
+  return RichText(
+    text: TextSpan(
+      text: "Already have an account? ",
+      style: AppTextStyle.body.copyWith(
+        color: Colors.black,
+        fontSize: Sizes.fontMedium,
+      ),
+      children: [
+        TextSpan(
+          text: "Login",
+          style: AppTextStyle.body.copyWith(
+            color: AppColors.primaryOrange,
+            fontSize: Sizes.fontMedium,
+            fontWeight: FontWeight.bold,
+          ),
+          //  recognizer: TapGestureRecognizer()
+          //  ..onTap = () {
+          //  Navigator.pushNamed(context, '/login');
+          // },
+        ),
+      ],
+    ),
+  );
 }
