@@ -107,7 +107,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<SignUpProvider>(context);
+    Provider.of<SignUpProvider>(context);
     return Scaffold(
         backgroundColor: AppColors.primaryOrange,
         body: Stack(children: [
