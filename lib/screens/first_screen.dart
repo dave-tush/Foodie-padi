@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:foodie_padi_apps/core/constants/app_assets.dart';
-import 'package:foodie_padi_apps/models/product/product_model.dart';
-import 'package:foodie_padi_apps/providers/search_provider.dart';
 import 'package:foodie_padi_apps/providers/user_provider.dart';
 import 'package:foodie_padi_apps/screens/product_details_screen.dart';
 import 'package:foodie_padi_apps/widgets/build_meal_card.dart';
@@ -22,7 +20,6 @@ class FirstScreen extends StatefulWidget {
 
 class _FirstScreenState extends State<FirstScreen> {
   String greeting = "Good Morning";
-  bool _isLoading = true;
   final ScrollController _scrollController = ScrollController();
   bool _isLoadingMore = false;
 
@@ -34,7 +31,6 @@ class _FirstScreenState extends State<FirstScreen> {
     'Snacks'
   ];
   int _selectedCategoryIndex = 0; // default is "All"
-  String _searchQuery = "";
   @override
   void initState() {
     super.initState();
@@ -364,6 +360,5 @@ class _FirstScreenState extends State<FirstScreen> {
         ),
       ),
     );
-    ;
   }
 }

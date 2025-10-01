@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:foodie_padi_apps/core/constants/app_assets.dart';
-import 'package:foodie_padi_apps/models/product/product_model.dart';
 import 'package:foodie_padi_apps/providers/product_provider.dart';
 import 'package:foodie_padi_apps/widgets/build_meal_card.dart';
 import 'package:provider/provider.dart';

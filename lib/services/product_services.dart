@@ -3,12 +3,8 @@ import 'dart:convert';
 import 'package:foodie_padi_apps/models/product/paginated_product.dart';
 import 'package:foodie_padi_apps/models/product/product_suggestion.dart';
 import 'package:http/http.dart' as http;
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../core/constants/api_constants.dart';
 import '../models/product/product_model.dart';
-import '../providers/user_provider.dart';
 
 class ProductServices {
   final String baseUrl;

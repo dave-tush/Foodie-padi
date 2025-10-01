@@ -1,21 +1,9 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:foodie_padi_apps/models/product/product_model.dart';
 import 'package:foodie_padi_apps/screens/cart_screen.dart';
 import 'package:foodie_padi_apps/screens/explore_screen.dart';
 import 'package:foodie_padi_apps/screens/favourite_screen.dart';
 import 'package:foodie_padi_apps/screens/first_screen.dart';
 import 'package:foodie_padi_apps/screens/profile_screen.dart';
-import 'package:foodie_padi_apps/widgets/triangle_clip.dart';
-import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-import '../core/constants/app_assets.dart';
-import '../providers/user_provider.dart';
-import '../providers/product_provider.dart';
-import '../widgets/promo_carousel.dart';
-import 'product_details_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});

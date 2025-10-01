@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:foodie_padi_apps/core/constants/app_assets.dart';
-import 'package:foodie_padi_apps/models/product/product_model.dart';
 import 'package:foodie_padi_apps/providers/favourite_provider.dart';
 import 'package:provider/provider.dart';
 

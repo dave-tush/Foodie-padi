@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:foodie_padi_apps/widgets/button.dart';
 import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
-import '../widgets/cart_item_tile.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
@@ -10,7 +9,7 @@ class CartScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool content = false;
-    final cart = Provider.of<CartProvider>(context);
+    Provider.of<CartProvider>(context);
 
     return Scaffold(
       appBar: AppBar(title: Text("Carts")),

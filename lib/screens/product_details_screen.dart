@@ -1,13 +1,11 @@
+// ignore_for_file: unnecessary_null_comparison
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:foodie_padi_apps/core/constants/app_assets.dart';
 import 'package:foodie_padi_apps/core/constants/app_colors.dart';
-import 'package:foodie_padi_apps/models/cart/cart_model.dart';
 import 'package:foodie_padi_apps/models/product/product_model.dart';
 import 'package:foodie_padi_apps/providers/cart_provider.dart';
 import 'package:foodie_padi_apps/providers/product_provider.dart';
-import 'package:foodie_padi_apps/services/product_services.dart';
-import 'package:foodie_padi_apps/widgets/button.dart';
 import 'package:provider/provider.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
@@ -139,7 +137,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
 
                         /// ---------------- Product Name + Price ----------------
                         Text(
-                          product.name ?? "No name",
+                          product.name,
                           style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -245,7 +243,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                           // Left: Option Name
                                           Expanded(
                                             child: Text(
-                                              option.name ?? "No name",
+                                              option.name,
                                               style:
                                                   const TextStyle(fontSize: 16),
                                             ),

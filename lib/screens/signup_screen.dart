@@ -1,4 +1,3 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:foodie_padi_apps/core/constants/app_assets.dart';
 import 'package:foodie_padi_apps/core/constants/app_text_style.dart';
@@ -9,10 +8,8 @@ import 'package:foodie_padi_apps/widgets/button.dart';
 import 'package:foodie_padi_apps/widgets/passwordfield.dart';
 import 'package:foodie_padi_apps/widgets/textform_field.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../core/constants/sizes.dart';
 import '../models/user_model.dart';
-import '../providers/role_provider.dart';
 import '../providers/signup_provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:foodie_padi_apps/core/constants/app_colors.dart';

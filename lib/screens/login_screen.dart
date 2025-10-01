@@ -5,7 +5,6 @@ import 'package:foodie_padi_apps/core/constants/app_colors.dart';
 import 'package:foodie_padi_apps/providers/user_provider.dart';
 import 'package:foodie_padi_apps/screens/signup_screen.dart';
 import 'package:foodie_padi_apps/services/auth_services.dart';
-import 'package:foodie_padi_apps/widgets/button.dart';
 import 'package:foodie_padi_apps/widgets/passwordfield.dart';
 import 'package:foodie_padi_apps/widgets/textform_field.dart';
 import 'package:provider/provider.dart';
@@ -13,9 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/constants/sizes.dart';
 import '../providers/signup_provider.dart';
-import 'cart_screen.dart';
 import 'homepage_screen.dart';
-import 'selection_screen.dart';
 import 'vendor_screens/vendor_home_screen.dart';
 
 class LoginScreen extends StatelessWidget {

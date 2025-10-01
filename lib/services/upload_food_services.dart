@@ -1,13 +1,7 @@
 import 'dart:convert';
-
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
-
 import '../models/food_item_model.dart';
-
-import 'dart:io';
-import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
 
 class FoodService {

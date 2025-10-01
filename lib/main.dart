@@ -9,7 +9,6 @@ import 'package:foodie_padi_apps/providers/search_provider.dart';
 import 'package:foodie_padi_apps/providers/signup_provider.dart';
 import 'package:foodie_padi_apps/providers/user_provider.dart';
 import 'package:foodie_padi_apps/screens/login_screen.dart';
-import 'package:foodie_padi_apps/screens/selection_screen.dart';
 import 'package:foodie_padi_apps/screens/splash_screen.dart';
 import 'package:foodie_padi_apps/screens/vendor_screens/add_food_screen.dart';
 import 'package:foodie_padi_apps/services/cart_services.dart';
@@ -20,13 +19,9 @@ import 'providers/vendor_provider.dart';
 import 'screens/chat_screen.dart';
 import 'screens/orders_screen.dart';
 import 'screens/profile_screen.dart';
-import 'screens/review_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/vendor_screens/vendor_home_screen.dart';
-import 'screens/verify_code_screen.dart';
-
-import 'screens/signup_screen.dart';
 
 //import 'screens/forgot_password_screen.dart';
 //import 'screens/verify_code_screen.dart';

@@ -7,7 +7,6 @@ import '../core/constants/app_colors.dart';
 import '../core/constants/app_text_style.dart';
 import '../core/constants/gaps.dart';
 import '../core/constants/sizes.dart';
-import '../providers/role_provider.dart';
 import '../providers/user_provider.dart';
 
 import 'homepage_screen.dart';

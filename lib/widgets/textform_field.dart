@@ -1,5 +1,4 @@
 import "package:flutter/material.dart";
-import "package:foodie_padi_apps/core/constants/app_colors.dart";
 import "package:flutter_screenutil/flutter_screenutil.dart";
 
 Widget buildTextField(

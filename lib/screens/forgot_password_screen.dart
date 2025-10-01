@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:foodie_padi_apps/core/constants/app_colors.dart';
 import 'package:foodie_padi_apps/widgets/textform_field.dart';
-import 'package:provider/provider.dart';
 
 class ForgotPasswordScreen extends StatelessWidget {
   final TextEditingController emailController = TextEditingController();
