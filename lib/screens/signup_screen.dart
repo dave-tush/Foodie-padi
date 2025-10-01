@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:foodie_padi_apps/core/constants/app_assets.dart';
 import 'package:foodie_padi_apps/core/constants/app_text_style.dart';
 import 'package:foodie_padi_apps/core/constants/gaps.dart';
+import 'package:foodie_padi_apps/screens/login_screen.dart';
 import 'package:foodie_padi_apps/services/auth_services.dart';
 import 'package:foodie_padi_apps/widgets/button.dart';
 import 'package:foodie_padi_apps/widgets/passwordfield.dart';
@@ -186,7 +187,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             toggle: () {},
                           ),
                           Gaps.vMedium,
-                          _buildLoginRedirect(),
+                          _buildLoginRedirect(context),
                           Gaps.vLarge,
                           button(
                             text: _isLoading
@@ -220,28 +221,35 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 }
 
-Widget _buildLoginRedirect() {
-  return RichText(
-    text: TextSpan(
-      text: "Already have an account? ",
-      style: AppTextStyle.body.copyWith(
-        color: Colors.black,
-        fontSize: Sizes.fontMedium,
-      ),
-      children: [
-        TextSpan(
-          text: "Login",
-          style: AppTextStyle.body.copyWith(
-            color: AppColors.primaryOrange,
-            fontSize: Sizes.fontMedium,
-            fontWeight: FontWeight.bold,
-          ),
-          //  recognizer: TapGestureRecognizer()
-          //  ..onTap = () {
-          //  Navigator.pushNamed(context, '/login');
-          // },
+Widget _buildLoginRedirect(BuildContext context) {
+  return Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Text(
+        "Don’t have an account? ",
+        style: AppTextStyle.body.copyWith(
+          color: Colors.black,
+          fontSize: Sizes.fontMedium,
         ),
-      ],
-    ),
+      ),
+      MouseRegion(
+        // enables hover effect for web/desktop
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: () => Navigator.push(
+              context, MaterialPageRoute(builder: (context) => LoginScreen())),
+          child: Text(
+            "Login",
+            style: AppTextStyle.body.copyWith(
+              color: AppColors.primaryOrange,
+              fontSize: Sizes.fontMedium,
+              fontWeight: FontWeight.bold,
+              decoration:
+                  TextDecoration.underline, // underline to look like link
+            ),
+          ),
+        ),
+      ),
+    ],
   );
 }

@@ -7,15 +7,20 @@ class AppTextStyle {
     fontSize: Sizes.fontMedium,
     color: AppColors.textLight,
   );
+  static final TextStyle bodyMedium = TextStyle(
+    fontSize: Sizes.fontSmallMedium,
+    color: AppColors.secondaryYellow,
+  );
   static final TextStyle bodySmall = TextStyle(
     fontSize: Sizes.fontSmall,
     color: AppColors.textDark,
   );
   static final TextStyle heading = TextStyle(
-    fontSize: Sizes.fontExtraLarge,
+    fontSize: Sizes.fontExtraExtraLarge,
     color: AppColors.textDark,
     fontWeight: FontWeight.bold,
   );
+
   static final TextStyle subtitle = TextStyle(
     fontSize: Sizes.fontLarge,
     color: AppColors.textLight,
@@ -31,8 +36,9 @@ class AppTextStyle {
     color: AppColors.errorRed,
   );
   static final TextStyle headingExtra = TextStyle(
-    fontSize: Sizes.fontSmall,
-    color: AppColors.textDark,
+    wordSpacing: 2,
+    fontSize: Sizes.fontMedium,
+    color: Color(0xFF6E6E6E),
   );
   static final TextStyle headingExtraBold = TextStyle(
     fontSize: Sizes.fontExtraLarge,

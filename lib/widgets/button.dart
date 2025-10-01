@@ -30,6 +30,39 @@ Widget button(
   );
 }
 
+Widget outlineButton({
+  required String text,
+  required VoidCallback onPressed,
+}) {
+  return Material(
+    color: Colors.transparent,
+    borderRadius: BorderRadius.circular(Sizes.radiusLarge),
+    child: InkWell(
+      //borderRadius: BorderRadius.circular(Sizes.radiusLarge),
+      onTap: onPressed,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: AppColors.secondaryYellow, // Outline color
+            width: 1.w, // Border thickness
+          ),
+          borderRadius: BorderRadius.circular(Sizes.radiusLarge),
+        ),
+        child: Center(
+          child: Text(
+            text,
+            style: AppTextStyle.body.copyWith(
+              color: AppColors.textDark,
+              fontSize: Sizes.fontSmallMedium,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 Widget onboardingButton(String text, VoidCallback onPressed) {
   return Material(
     color: AppColors.secondaryYellow,

@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:foodie_padi_apps/widgets/chart.dart';
 import 'package:provider/provider.dart' show Provider;
 
 import '../../models/vendor_model.dart';
@@ -57,7 +58,7 @@ class _VendorHomeScreenState extends State<VendorHomeScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: _buildDashboard(vendor, context),
+        child: LineChartSample2(),
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
@@ -137,6 +138,10 @@ class _VendorHomeScreenState extends State<VendorHomeScreen> {
             Text("${vendor.averageRating}"),
             Text("  Total ${vendor.totalReviews} Reviews"),
           ],
+        ),
+        SizedBox(
+          height: 50,
+          child: LineChartSample2(),
         )
       ],
     );

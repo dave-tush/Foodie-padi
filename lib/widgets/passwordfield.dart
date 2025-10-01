@@ -1,28 +1,31 @@
 import 'package:flutter/material.dart';
 import "package:flutter_screenutil/flutter_screenutil.dart";
 
-import '../constants/app_colors.dart';
-
-Widget buildPasswordField(String label, TextEditingController controller,
-    bool obscure, VoidCallback toggle) {
+Widget buildPasswordField(
+    {required String label,
+    required TextEditingController controller,
+    required bool obscure,
+    required VoidCallback toggle}) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(label,
-          style: TextStyle(
-              color: AppColors.grey,
-              fontWeight: FontWeight.w700,
-              fontSize: 16.sp)),
-      SizedBox(height: 6),
+      Text(
+        label,
+        style: TextStyle(
+            color: Color(0xFF646982),
+            fontWeight: FontWeight.w700,
+            fontSize: 16.sp),
+      ),
+      SizedBox(height: 6.h),
       TextField(
         controller: controller,
         obscureText: obscure,
         decoration: InputDecoration(
           hintText: label,
           filled: true,
-          fillColor: Color(0xFFF3F6F8),
+          fillColor: Color(0xFFF0F5FA),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(10.r),
             borderSide: BorderSide.none,
           ),
           contentPadding:
@@ -33,7 +36,7 @@ Widget buildPasswordField(String label, TextEditingController controller,
           ),
         ),
       ),
-      SizedBox(height: 12),
+      SizedBox(height: 12.h),
     ],
   );
 }

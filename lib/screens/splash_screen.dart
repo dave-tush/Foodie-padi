@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:foodie_padi_apps/constants/app_colors.dart';
+import 'package:foodie_padi_apps/core/constants/app_colors.dart';
 import 'package:foodie_padi_apps/screens/onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {

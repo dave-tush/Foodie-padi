@@ -1,48 +1,84 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:foodie_padi_apps/core/constants/app_assets.dart';
+import 'package:foodie_padi_apps/core/constants/app_colors.dart';
+import 'package:foodie_padi_apps/core/constants/app_text_style.dart';
 import 'package:foodie_padi_apps/providers/onboarding_provider.dart';
 import 'package:foodie_padi_apps/screens/signup_screen.dart';
+import 'package:foodie_padi_apps/widgets/button.dart';
 import 'package:provider/provider.dart';
 
-class OnboardingScreen extends StatelessWidget {
+import '../core/constants/gaps.dart';
+import '../core/constants/sizes.dart';
+
+class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
+
+  @override
+  State<OnboardingScreen> createState() => _OnboardingScreenState();
+}
+
+class _OnboardingScreenState extends State<OnboardingScreen> {
+  late PageController pageController;
+
+  final List<Map<String, String>> onboardingData = [
+    {
+      'image': AppAssets.onboarding1,
+      'title': 'Welcome to \n Foodie Padi',
+      'subtitle':
+          'Delicious meals from trusted\nlocal kitchens - ready when you are.\nDiscover, order and enjoy with ease.',
+    },
+    {
+      'image': AppAssets.onboarding2,
+      'title': "Find What You’re \nCraving",
+      'subtitle':
+          'Browse real-time menus \nfrom food vendors near you.\nSee what’s hot for breakfast, lunch, or dinner.',
+    },
+    {
+      'image': AppAssets.onboarding3,
+      'title': 'Support Great Food, Locally Made',
+      'subtitle':
+          'Your orders help small food businesses grow.\nTaste the care in every meal\nand fuel local dreams.',
+    },
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    pageController.dispose();
+    super.dispose();
+  }
+
+  void nextPage(OnboardingProvider onboardingProvider) {
+    if (onboardingProvider.currentPage < onboardingData.length - 1) {
+      pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const SignupScreen()),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final onboardingProvider = Provider.of<OnboardingProvider>(context);
-    final PageController pageController = PageController();
-    final List<Map<String, String>> onboardingData = [
-      {
-        'image': 'assets/images/onboarding_1.png',
-        'title': 'Welcome to \n Foodie Padi',
-        'subtitle':
-        'Delicious meals from trusted\nlocal kitchens - ready when you are\nDiscover, order and enjoy with ease.',
-      },
-      {
-        'image': 'assets/images/onboarding_2.png',
-        'title': 'Track Your\nOrders Easily',
-        'subtitle':
-        'Get real-time updates and\ntrack your delivery right from the app.',
-      },
-      {
-        'image': 'assets/images/onboarding_3.png',
-        'title': 'Fast Delivery\nGuaranteed',
-        'subtitle': 'Fresh meals delivered hot\nand fast right to your door.',
-      },
-    ];
-
-    void nextPage(){
-    if(onboardingProvider.currentPage < onboardingData.length - 1) {
-      pageController.nextPage(duration: Duration(milliseconds: 300), curve: Curves.easeInOut);
-    } else {
-      Navigator.push(
-          context, MaterialPageRoute(builder: (_) => SignUpScreen()));
-    }
-    }
 
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: EdgeInsets.symmetric(
+            horizontal: Sizes.paddingLarge,
+            vertical: Sizes.paddingMedium,
+          ),
           child: Column(
             children: [
               Expanded(
@@ -55,78 +91,61 @@ class OnboardingScreen extends StatelessWidget {
                   itemBuilder: (context, index) {
                     return Column(
                       children: [
-                        const SizedBox(height: 30),
+                        SizedBox(height: Sizes.paddingLarge),
                         Image.asset(
                           onboardingData[index]['image']!,
-                          height: 500,
+                          height:
+                              400.h, // keeps your original responsive height
                         ),
-                        const SizedBox(height: 40),
                         Text(
                           onboardingData[index]['title']!,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
+                          style: AppTextStyle.heading,
                         ),
-                        const SizedBox(height: 16),
+                        Gaps.vLarge, // keeps your spacing widget
                         Text(
                           onboardingData[index]['subtitle']!,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            color: Colors.black54,
-                            height: 1.5,
-                          ),
+                          style: AppTextStyle.headingExtra,
                         ),
                       ],
                     );
                   },
                 ),
               ),
-              const SizedBox(height: 24),
+              Gaps.vLarge,
               Row(
                 children: [
+                  // Indicators
                   Row(
                     children: List.generate(
                       onboardingData.length,
-                          (index) => AnimatedContainer(
+                      (index) => AnimatedContainer(
                         duration: const Duration(milliseconds: 300),
-                        margin: const EdgeInsets.only(right: 6),
-                        width: onboardingProvider.currentPage == index ? 20 : 8,
-                        height: 8,
+                        margin: EdgeInsets.only(
+                            right: 6.r), // keeps your responsive margin
+                        width: onboardingProvider.currentPage == index
+                            ? Sizes.buttonHeightMedium
+                            : Sizes.paddingMedium,
+                        height: 16,
                         decoration: BoxDecoration(
                           color: onboardingProvider.currentPage == index
-                              ? const Color(0xFFFF6B00)
-                              : Colors.black12,
-                          borderRadius: BorderRadius.circular(4),
+                              ? AppColors.secondaryYellow
+                              : AppColors.secondary,
+                          borderRadius:
+                              BorderRadius.circular(Sizes.radiusLarge),
                         ),
                       ),
                     ),
                   ),
                   const Spacer(),
-                  ElevatedButton(
-                    onPressed: nextPage,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF6B00),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Text(
-                      onboardingProvider.currentPage ==
-                          onboardingData.length - 1
-                          ? 'Get Started'
-                          : 'Next',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  )
+                  // Next / Get Started Button
+                  onboardingButton(
+                    onboardingProvider.currentPage == onboardingData.length - 1
+                        ? "Get Started"
+                        : "Next",
+                    () => nextPage(onboardingProvider),
+                  ),
                 ],
               ),
             ],

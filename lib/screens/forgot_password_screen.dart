@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:foodie_padi_apps/constants/app_colors.dart';
+import 'package:foodie_padi_apps/core/constants/app_colors.dart';
 import 'package:foodie_padi_apps/widgets/textform_field.dart';
 import 'package:provider/provider.dart';
 
@@ -27,7 +27,10 @@ class ForgotPasswordScreen extends StatelessWidget {
                         fontWeight: FontWeight.bold)),
                 SizedBox(height: 20.h),
                 buildTextField(
-                    "Email", "Email", emailController, "Email is required",
+                    hint: "Email",
+                    label: "Email",
+                    controller: emailController,
+                    validatorText: "Email is required",
                     inputType: TextInputType.emailAddress),
                 SizedBox(height: 20.h),
                 ElevatedButton(

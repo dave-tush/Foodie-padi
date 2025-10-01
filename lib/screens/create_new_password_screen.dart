@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 
-import '../constants/app_colors.dart';
+import '../core/constants/app_colors.dart';
 import '../providers/signup_provider.dart';
 import '../widgets/passwordfield.dart';
 
@@ -33,15 +33,15 @@ class CreateNewPasswordScreen extends StatelessWidget {
                         fontWeight: FontWeight.bold)),
                 SizedBox(height: 20.h),
                 buildPasswordField(
-                    "New Password",
-                    passwordController,
-                    provider.obscurePassword,
-                    provider.togglePasswordVisibility),
+                    label: "New Password",
+                    controller: passwordController,
+                    obscure: provider.obscurePassword,
+                    toggle: provider.togglePasswordVisibility),
                 buildPasswordField(
-                    "Confirm Password",
-                    confirmPasswordController,
-                    provider.obscureConfirmPassword,
-                    provider.toggleConfirmPasswordVisibility),
+                    label: "Confirm Password",
+                    controller: confirmPasswordController,
+                    obscure: provider.obscureConfirmPassword,
+                    toggle: provider.toggleConfirmPasswordVisibility),
                 SizedBox(height: 20.h),
                 ElevatedButton(
                   onPressed: () {

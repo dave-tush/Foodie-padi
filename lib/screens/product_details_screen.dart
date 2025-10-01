@@ -1,8 +1,15 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:foodie_padi_apps/models/product_model.dart';
+import 'package:foodie_padi_apps/core/constants/app_assets.dart';
+import 'package:foodie_padi_apps/core/constants/app_colors.dart';
+import 'package:foodie_padi_apps/models/cart/cart_model.dart';
+import 'package:foodie_padi_apps/models/product/product_model.dart';
+import 'package:foodie_padi_apps/providers/cart_provider.dart';
 import 'package:foodie_padi_apps/providers/product_provider.dart';
 import 'package:foodie_padi_apps/services/product_services.dart';
+import 'package:foodie_padi_apps/widgets/button.dart';
 import 'package:provider/provider.dart';
+import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
   final String productId;
@@ -14,13 +21,31 @@ class ProductDetailsScreen extends StatefulWidget {
 }
 
 class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
+  final PageController _pageController = PageController();
   ProductModel? productModel;
   bool isLoading = true;
+
+  // 👇 Add this to track selected options
+  List<bool> selectedOptions = [];
+
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     _loadProduct();
+  }
+
+  int quantity = 1; // 👈 add in your State class
+
+  double _calculateTotalPrice() {
+    if (productModel == null) return 0.0;
+
+    double total = productModel!.price;
+    for (int i = 0; i < (productModel!.options?.length ?? 0); i++) {
+      if (selectedOptions[i]) {
+        total += productModel!.options![i].price;
+      }
+    }
+    return total * quantity;
   }
 
   Future<void> _loadProduct() async {
@@ -29,8 +54,14 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       final fetched = await service.fetchProductById(widget.productId);
       setState(() {
         productModel = fetched;
+        // Initialize selection states based on number of options
+        selectedOptions =
+            List.generate(fetched.options?.length ?? 0, (_) => false);
       });
+    } catch (e) {
+      debugPrint("Error loading product: $e");
     } finally {
+      if (!mounted) return;
       setState(() {
         isLoading = false;
       });
@@ -38,78 +69,348 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   }
 
   @override
+  void dispose() {
+    super.dispose();
+    _pageController.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final product = productModel;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
-            isLoading ? "Loading" : productModel!.name ?? "Product Details"),
+          isLoading ? "Loading..." : (product?.name ?? "Product Details"),
+        ),
       ),
       body: isLoading
-          ? Center(
-              child: CircularProgressIndicator(),
-            )
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        productModel!.images[0] ?? "",
-                        height: 200,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
-                            const Icon(Icons.image, size: 100),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    productModel!.name,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    "₦${productModel!.price}",
-                    style: const TextStyle(
-                      fontSize: 20,
-                      color: Colors.green,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    productModel!.description ?? "No description available",
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const Spacer(),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // TODO: Add to cart
-                      },
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+          ? const Center(child: CircularProgressIndicator())
+          : product == null
+              ? const Center(child: Text("Product not found"))
+              : SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        /// ---------------- Product Images ----------------
+                        Center(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: SizedBox(
+                              height: 400,
+                              width: double.infinity,
+                              child: PageView.builder(
+                                controller: _pageController,
+                                itemCount: product.images.length,
+                                itemBuilder: (context, index) {
+                                  return Image.network(
+                                    product.images[index],
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => const Icon(
+                                      Icons.image,
+                                      size: 100,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                      child: const Text(
-                        "Buy Now",
-                        style: TextStyle(fontSize: 18),
-                      ),
+                        const SizedBox(height: 10),
+
+                        if (product.images.isNotEmpty)
+                          Center(
+                            child: SmoothPageIndicator(
+                              controller: _pageController,
+                              count: product.images.length,
+                              effect: ExpandingDotsEffect(
+                                dotHeight: 12,
+                                dotWidth: 12,
+                                expansionFactor: 3,
+                                activeDotColor: AppColors.secondaryYellow,
+                                dotColor: AppColors.orangeBackground,
+                              ),
+                            ),
+                          ),
+
+                        const SizedBox(height: 20),
+
+                        /// ---------------- Product Name + Price ----------------
+                        Text(
+                          product.name ?? "No name",
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          product.available == true
+                              ? "In Stock"
+                              : "Out of Stock",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: product.available == true
+                                ? Colors.green
+                                : Colors.red,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          product.price != null
+                              ? "₦${product.price}"
+                              : "Price unavailable",
+                          style: TextStyle(
+                            fontSize: 20,
+                            color: AppColors.secondaryYellow,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+
+                        Row(
+                          children: [
+                            Icon(Icons.star, color: Colors.amber, size: 20),
+                            SizedBox(width: 4),
+                            Text(
+                              product.averageRating != null
+                                  ? product.averageRating.toStringAsFixed(1)
+                                  : "0.0",
+                              style: TextStyle(fontSize: 16),
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              product.reviewCount != null
+                                  ? "(${product.reviewCount} reviews)"
+                                  : "(0 reviews)",
+                              style:
+                                  TextStyle(fontSize: 14, color: Colors.grey),
+                            ),
+                            Spacer(),
+                            RichText(
+                              text: TextSpan(
+                                  text: 'See all reviews',
+                                  style: TextStyle(
+                                      color: AppColors.secondaryYellow,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      decoration: TextDecoration.underline),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () {
+                                      Navigator.pushNamed(context, '/reviews',
+                                          arguments: product.id);
+                                    }),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          product.description != null
+                              ? "${product.description}"
+                              : "description unavailable",
+                          style: TextStyle(
+                            fontSize: 14,
+                            //color: AppColors.secondaryYellow,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        /// ---------------- Options ----------------
+                        Text(
+                          "Available Options",
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+
+                        product.options != null && product.options!.isNotEmpty
+                            ? SizedBox(
+                                height: 200,
+                                child: ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: product.options!.length,
+                                  itemBuilder: (context, index) {
+                                    final option = product.options![index];
+
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 8.0),
+                                      child: Row(
+                                        children: [
+                                          // Left: Option Name
+                                          Expanded(
+                                            child: Text(
+                                              option.name ?? "No name",
+                                              style:
+                                                  const TextStyle(fontSize: 16),
+                                            ),
+                                          ),
+
+                                          // Right: Price + Checkbox
+                                          Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                option.price != null
+                                                    ? "₦${option.price}"
+                                                    : "Price unavailable",
+                                                style: const TextStyle(
+                                                    fontSize: 16),
+                                              ),
+                                              const SizedBox(width: 10),
+                                              Checkbox(
+                                                checkColor:
+                                                    AppColors.background,
+                                                activeColor:
+                                                    AppColors.secondaryYellow,
+                                                value: (index <
+                                                        selectedOptions.length)
+                                                    ? selectedOptions[index]
+                                                    : false,
+                                                onChanged: (value) {
+                                                  setState(() {
+                                                    if (index <
+                                                        selectedOptions
+                                                            .length) {
+                                                      selectedOptions[index] =
+                                                          value ?? false;
+                                                    }
+                                                  });
+                                                },
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              )
+                            : const Text("No options available"),
+
+                        const SizedBox(height: 20),
+
+                        /// ---------------- Add to Cart ----------------
+                        Consumer<CartProvider>(
+                          builder: (context, cartProvider, child) {
+                            return Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 8,
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  /// Quantity selector
+                                  IconButton(
+                                    icon:
+                                        const Icon(Icons.remove_circle_outline),
+                                    onPressed: () {
+                                      if (quantity > 1) {
+                                        setState(() => quantity--);
+                                      }
+                                    },
+                                  ),
+                                  Text('$quantity',
+                                      style: const TextStyle(fontSize: 18)),
+                                  IconButton(
+                                    icon: const Icon(Icons.add_circle_outline),
+                                    onPressed: () {
+                                      setState(() => quantity++);
+                                    },
+                                  ),
+
+                                  const SizedBox(width: 12),
+
+                                  /// Add to Cart button
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: () {
+                                        final selectedIds = <String>[];
+                                        for (int i = 0;
+                                            i < selectedOptions.length;
+                                            i++) {
+                                          if (selectedOptions[i]) {
+                                            selectedIds.add(
+                                                productModel!.options![i].id);
+                                          }
+                                        }
+
+                                        cartProvider.addToCart(productModel!.id,
+                                            quantity, selectedIds);
+                                      },
+                                      icon: const Icon(
+                                        Icons.shopping_bag_outlined,
+                                        size: 32,
+                                        color: AppColors.white,
+                                      ),
+                                      label: Text(
+                                        "Add to Cart \n (₦${_calculateTotalPrice().toStringAsFixed(0)})",
+                                        style: const TextStyle(
+                                            fontSize: 16,
+                                            color: AppColors.white,
+                                            fontWeight: FontWeight.w600),
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                            AppColors.primaryOrange,
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 16),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(32),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        /// ---------------- Buy Now ----------------
+                        SizedBox(
+                          width: double.infinity,
+                          height: 60,
+                          child: ElevatedButton(
+                              onPressed: () {
+                                // TODO: Direct Buy
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryOrange,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Column(
+                                children: [
+                                  const Text(
+                                    "Order Now",
+                                    style: TextStyle(fontSize: 18),
+                                  ),
+                                ],
+                              )),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
+                ),
     );
   }
 }

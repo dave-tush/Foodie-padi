@@ -1,74 +1,107 @@
 import 'package:flutter/material.dart';
-
-import '../models/cart_item.dart';
+import 'package:foodie_padi_apps/models/cart/cart_model.dart';
+import 'package:foodie_padi_apps/services/cart_services.dart';
 
 class CartProvider extends ChangeNotifier {
-  final List<CartItem> _items = [];
-  List<CartItem> get item => _items;
+  final CartServices _cartServices;
+  CartModel? _cart;
+  bool _isLoading = false;
 
-  final List<CartItem> _item = [
-    CartItem(
-      id: '1',
-      name: 'Ewa Agoyin',
-      imageUrl: 'https://example.com/ewa.jpg',
-      price: 6.00,
-      quantity: 1,
-      extras: [
-        ExtraItem(name: 'Plantain', price: 0.50),
-        ExtraItem(name: 'Meat', price: 2.00),
-      ],
-    ),
-    CartItem(
-      id: '2',
-      name: 'Chicken and Chip',
-      imageUrl: 'https://example.com/chicken_chip.jpg',
-      price: 15.00,
-      quantity: 1,
-    ),
-    CartItem(
-      id: '3',
-      name: 'Pepper Soup',
-      imageUrl: 'https://example.com/pepper_soup.jpg',
-      price: 8.00,
-      quantity: 1,
-    ),
-  ];
+  CartProvider(this._cartServices);
 
-  void addItem(CartItem item) {
-    _items.add(item);
-    notifyListeners();
-  }
+  CartModel? get cart => _cart;
+  bool get isLoading => _isLoading;
+  int get totalItems =>
+      _cart?.items.fold(0, (sum, item) => sum! + item.quantity) ?? 0;
+  double get totalPrice => _cart?.totalPrice ?? 0.0;
 
-  void increaseQuantity(String id) {
-    final item = _items.firstWhere((element) => element.id == id);
-    item.quantity++;
-    notifyListeners();
-  }
-
-  void decreaseQuantity(String id) {
-    final item = _items.firstWhere((element) => element.id == id);
-    if (item.quantity > 1) {
-      item.quantity--;
+  //fetch cart from backend
+  Future<void> fetchCart() async {
+    _setLoading(true);
+    try {
+      _cart = await _cartServices.getCart();
       notifyListeners();
+    } catch (e) {
+      debugPrint('Fetch cart error: $e');
+    }
+    _setLoading(false);
+  }
+
+  //add product to cart
+  Future<void> addToCart(
+      String productId, int quantity, List<String> selectedOptions) async {
+    _setLoading(true);
+    try {
+      _cart =
+          await _cartServices.addToCart(productId, quantity, selectedOptions);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Add to cart error: $e');
+    }
+    _setLoading(false);
+  }
+
+  //update existing cart item
+  Future<void> updateCartItem(
+      String itemId, int quantity, List<String> selectedOptions) async {
+    _setLoading(true);
+    try {
+      _cart =
+          await _cartServices.updateCartItem(itemId, quantity, selectedOptions);
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Update cart item error: $e");
+    }
+    _setLoading(false);
+  }
+
+  /// Remove an item from the cart
+  Future<void> removeCartItem(String itemId) async {
+    _setLoading(true);
+    try {
+      _cart = await _cartServices.removeFromCart(itemId);
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Remove cart item error: $e");
+    }
+    _setLoading(false);
+  }
+
+  /// Clear entire cart
+  Future<void> clearCart() async {
+    _setLoading(true);
+    try {
+      await _cartServices.clearCart();
+      _cart = null;
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Clear cart error: $e");
+    }
+    _setLoading(false);
+  }
+
+  /// Checkout
+  Future<Map<String, dynamic>?> checkout(
+      {String? addressId, String? specialRequest}) async {
+    _setLoading(true);
+    try {
+      final result =
+          await _cartServices.checkoutCart(addressId ?? '', specialRequest);
+      // Reset cart after checkout
+      _cart = null;
+      notifyListeners();
+      return result;
+    } catch (e) {
+      debugPrint("Checkout error: $e");
+      return null;
+    } finally {
+      _setLoading(false);
     }
   }
 
-  void removeItem(String id) {
-    _items.removeWhere((item) => item.id == id);
+  /// Helper: set loading state
+  void _setLoading(bool value) {
+    _isLoading = value;
     notifyListeners();
   }
-
-  void clearCart() {
-    _items.clear();
-    notifyListeners();
-  }
-
-  double get totalPrice =>
-      _items.fold(0.0, (sum, item) => sum + item.totalPrice);
-
-  double get deliveryFee => 1.32;
-
-  double get discount => 1.32;
-
-  double get finalTotal => totalPrice + deliveryFee - discount;
 }
