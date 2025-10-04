@@ -10,7 +10,7 @@ class CartServices {
 
   Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('token');
+    return prefs.getString('accessToken');
   }
 
   // get current cart
@@ -41,6 +41,9 @@ class CartServices {
         'options': selectedOptions
       }),
     );
+    print('Using token: $token');
+    print("Add to Cart response: ${response.body}");
+    print("Status code: ${response.statusCode}");
     if (response.statusCode == 200 || response.statusCode == 201) {
       return CartModel.fromJson(jsonDecode(response.body));
     } else {

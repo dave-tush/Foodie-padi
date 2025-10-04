@@ -46,7 +46,10 @@ class MenuPage extends StatelessWidget {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => ReviewsPage()),
+                    MaterialPageRoute(
+                        builder: (_) => ReviewsScreen(
+                              productId: 'menu.id',
+                            )),
                   );
                 },
                 child: Text('See all reviews'),

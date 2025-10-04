@@ -74,6 +74,9 @@ class AuthServices {
     print('SignUp Response: ${response.statusCode} - ${response.body}');
     final data = jsonDecode(response.body);
     if (response.statusCode == 200) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('accessToken', data['accessToken'] ?? '');
+      await prefs.setString('refreshToken', data['refreshToken'] ?? '');
       return data;
     } else if (response.statusCode == 400) {
       throw Exception('Bad request: ${data['message']}');

@@ -25,10 +25,11 @@ class _FirstScreenState extends State<FirstScreen> {
 
   final List<String> categories = [
     'All',
-    'Breakfast',
-    'Lunch',
-    'Dinner',
-    'Snacks'
+    'BREAKFAST',
+    'LUNCH',
+    'DINNER',
+    'SNACKS',
+    'DRINKS',
   ];
   int _selectedCategoryIndex = 0; // default is "All"
   @override

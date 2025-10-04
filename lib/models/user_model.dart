@@ -1,3 +1,5 @@
+import 'package:foodie_padi_apps/models/address.dart';
+
 class User {
   final String id;
   final String name;
@@ -8,7 +10,7 @@ class User {
   final String? avatarUrl;
   final List<dynamic> preferences;
   final String? bio;
-  final String? address;
+  final List<Address>? address;
   final String? brandName;
   final String? brandLogo;
   final String token;
@@ -40,7 +42,11 @@ class User {
       avatarUrl: json['avatarUrl']?.toString(),
       preferences: json['preferences'] is List ? json['preferences'] : [],
       bio: json['bio']?.toString(),
-      address: json['address']?.toString(),
+      address: json['addresses'] != null && json['addresses'] is List
+          ? (json['addresses'] as List)
+              .map((addr) => Address.fromJson(addr))
+              .toList()
+          : null,
       brandName: json['brandName']?.toString(),
       brandLogo: json['brandLogo']?.toString(),
       token: token,
@@ -58,7 +64,7 @@ class User {
       'avatarUrl': avatarUrl,
       'preferences': preferences,
       'bio': bio,
-      'address': address,
+      'addresses': address!.map((addr) => addr.toJson()).toList(),
       'brandName': brandName,
       'brandLogo': brandLogo,
       'token': token,

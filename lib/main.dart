@@ -4,6 +4,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:foodie_padi_apps/providers/favourite_provider.dart';
 import 'package:foodie_padi_apps/providers/food_provider.dart';
 import 'package:foodie_padi_apps/providers/onboarding_provider.dart';
+import 'package:foodie_padi_apps/providers/payment_provider.dart';
+import 'package:foodie_padi_apps/providers/profile_provider.dart';
+import 'package:foodie_padi_apps/providers/review_provider.dart';
 import 'package:foodie_padi_apps/providers/role_provider.dart';
 import 'package:foodie_padi_apps/providers/search_provider.dart';
 import 'package:foodie_padi_apps/providers/signup_provider.dart';
@@ -12,7 +15,10 @@ import 'package:foodie_padi_apps/screens/login_screen.dart';
 import 'package:foodie_padi_apps/screens/splash_screen.dart';
 import 'package:foodie_padi_apps/screens/vendor_screens/add_food_screen.dart';
 import 'package:foodie_padi_apps/services/cart_services.dart';
+import 'package:foodie_padi_apps/services/payment_service.dart';
 import 'package:foodie_padi_apps/services/product_services.dart';
+import 'package:foodie_padi_apps/services/profile_services.dart';
+import 'package:foodie_padi_apps/services/review_services.dart';
 import 'providers/cart_provider.dart';
 import 'providers/product_provider.dart';
 import 'providers/vendor_provider.dart';
@@ -44,6 +50,15 @@ void main() async {
       ChangeNotifierProvider(create: (_) => FavouriteProvider()),
       ChangeNotifierProvider(create: (_) => SignUpProvider()),
       ChangeNotifierProvider(create: (_) => RoleProvider()),
+      ChangeNotifierProvider(
+          create: (_) => ReviewsProvider(ReviewService(
+              baseUrl: dotenv.env['BASE_URL'] ?? 'http://localhost:3000'))),
+      ChangeNotifierProvider(
+          create: (_) => PaymentProvider(PaymentService(
+              dotenv.env['BASE_URL'] ?? 'http://localhost:3000'))),
+      ChangeNotifierProvider(
+          create: (_) => ProfileProvider(ProfileServices(
+              dotenv.env['BASE_URL'] ?? 'http://localhost:3000'))),
       ChangeNotifierProvider(
           create: (_) => CartProvider(
               CartServices(dotenv.env['BASE_URL'] ?? 'http://localhost:3000'))),

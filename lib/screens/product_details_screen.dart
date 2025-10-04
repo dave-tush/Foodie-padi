@@ -6,6 +6,8 @@ import 'package:foodie_padi_apps/core/constants/app_colors.dart';
 import 'package:foodie_padi_apps/models/product/product_model.dart';
 import 'package:foodie_padi_apps/providers/cart_provider.dart';
 import 'package:foodie_padi_apps/providers/product_provider.dart';
+import 'package:foodie_padi_apps/screens/cart_screen.dart';
+import 'package:foodie_padi_apps/screens/review_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
@@ -88,7 +90,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               ? const Center(child: Text("Product not found"))
               : SingleChildScrollView(
                   child: Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 120.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -196,8 +198,12 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                       decoration: TextDecoration.underline),
                                   recognizer: TapGestureRecognizer()
                                     ..onTap = () {
-                                      Navigator.pushNamed(context, '/reviews',
-                                          arguments: product.id);
+                                      Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (_) => ReviewsScreen(
+                                                    productId: product.id,
+                                                  )));
                                     }),
                             ),
                           ],
@@ -212,6 +218,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                             fontWeight: FontWeight.w400,
                           ),
                         ),
+                        Text(product.category != null
+                            ? "Category: ${product.category}"
+                            : "Category unavailable"),
 
                         const SizedBox(height: 20),
 
@@ -294,121 +303,96 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         const SizedBox(height: 20),
 
                         /// ---------------- Add to Cart ----------------
-                        Consumer<CartProvider>(
-                          builder: (context, cartProvider, child) {
-                            return Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 8,
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                children: [
-                                  /// Quantity selector
-                                  IconButton(
-                                    icon:
-                                        const Icon(Icons.remove_circle_outline),
-                                    onPressed: () {
-                                      if (quantity > 1) {
-                                        setState(() => quantity--);
-                                      }
-                                    },
-                                  ),
-                                  Text('$quantity',
-                                      style: const TextStyle(fontSize: 18)),
-                                  IconButton(
-                                    icon: const Icon(Icons.add_circle_outline),
-                                    onPressed: () {
-                                      setState(() => quantity++);
-                                    },
-                                  ),
-
-                                  const SizedBox(width: 12),
-
-                                  /// Add to Cart button
-                                  Expanded(
-                                    child: ElevatedButton.icon(
-                                      onPressed: () {
-                                        final selectedIds = <String>[];
-                                        for (int i = 0;
-                                            i < selectedOptions.length;
-                                            i++) {
-                                          if (selectedOptions[i]) {
-                                            selectedIds.add(
-                                                productModel!.options![i].id);
-                                          }
-                                        }
-
-                                        cartProvider.addToCart(productModel!.id,
-                                            quantity, selectedIds);
-                                      },
-                                      icon: const Icon(
-                                        Icons.shopping_bag_outlined,
-                                        size: 32,
-                                        color: AppColors.white,
-                                      ),
-                                      label: Text(
-                                        "Add to Cart \n (₦${_calculateTotalPrice().toStringAsFixed(0)})",
-                                        style: const TextStyle(
-                                            fontSize: 16,
-                                            color: AppColors.white,
-                                            fontWeight: FontWeight.w600),
-                                      ),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                            AppColors.primaryOrange,
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 16),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(32),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-
-                        const SizedBox(height: 10),
 
                         /// ---------------- Buy Now ----------------
-                        SizedBox(
-                          width: double.infinity,
-                          height: 60,
-                          child: ElevatedButton(
-                              onPressed: () {
-                                // TODO: Direct Buy
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primaryOrange,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: Column(
-                                children: [
-                                  const Text(
-                                    "Order Now",
-                                    style: TextStyle(fontSize: 18),
-                                  ),
-                                ],
-                              )),
-                        ),
                       ],
                     ),
                   ),
                 ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10.0),
+        child: Consumer<CartProvider>(
+          builder: (context, cartProvider, child) {
+            return Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  /// Quantity selector
+                  IconButton(
+                    icon: const Icon(Icons.remove_circle_outline),
+                    onPressed: () {
+                      if (quantity > 1) {
+                        setState(() => quantity--);
+                      }
+                    },
+                  ),
+                  Text('$quantity', style: const TextStyle(fontSize: 18)),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline),
+                    onPressed: () {
+                      setState(() => quantity++);
+                    },
+                  ),
+
+                  const SizedBox(width: 12),
+
+                  /// Add to Cart button
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        final selectedIds = <String>[];
+                        for (int i = 0; i < selectedOptions.length; i++) {
+                          if (selectedOptions[i]) {
+                            selectedIds.add(productModel!.options![i].id);
+                          }
+                        }
+
+                        cartProvider.addToCart(
+                            productModel!.id, quantity, selectedIds);
+
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => CartScreen()));
+                      },
+                      icon: const Icon(
+                        Icons.shopping_bag,
+                        size: 32,
+                        color: AppColors.white,
+                      ),
+                      label: Text(
+                        "Add to Cart \n (₦${_calculateTotalPrice().toStringAsFixed(0)})",
+                        style: const TextStyle(
+                            fontSize: 16,
+                            color: AppColors.white,
+                            fontWeight: FontWeight.w600),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryOrange,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(32),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }
