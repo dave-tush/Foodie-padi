@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:foodie_padi_apps/core/constants/app_colors.dart';
 import 'package:foodie_padi_apps/providers/review_provider.dart';
 import 'package:foodie_padi_apps/services/review_services.dart';
 import 'package:provider/provider.dart';
@@ -83,7 +84,10 @@ class ReviewsScreen extends StatelessWidget {
                               child: LinearProgressIndicator(
                                 value: percent,
                                 backgroundColor: Colors.grey[200],
-                                color: Colors.amber,
+                                color: AppColors.primaryOrange,
+                                minHeight: 12,
+                                stopIndicatorRadius: 32,
+                                borderRadius: BorderRadius.circular(10),
                               ),
                             ),
                             const SizedBox(width: 10),
