@@ -1,3 +1,4 @@
+// Fixed and improved CartServices\import 'dart:convert';
 import 'dart:convert';
 
 import 'package:foodie_padi_apps/models/cart/cart_model.dart';
@@ -13,105 +14,115 @@ class CartServices {
     return prefs.getString('accessToken');
   }
 
-  // get current cart
+  // Fetch user cart
   Future<CartModel> getCart() async {
     final token = await _getToken();
-    final response = await http.get(Uri.parse('$baseUrl/api/cart'),
-        headers: {'Authorization': 'Bearer $token'});
-    if (response.statusCode == 200) {
-      return CartModel.fromJson(jsonDecode(response.body));
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/cart'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json'
+      },
+    );
+
+    print('GET CART: ${response.statusCode}');
+    print(response.body);
+
+    if (response.statusCode == 201) {
+      final decoded = jsonDecode(response.body);
+      return CartModel.fromJson(decoded['data']);
     } else {
-      throw Exception('Failed to load cart');
+      throw Exception('Failed to load cart: ${response.body}');
     }
   }
 
-  // add item to cart
+  // Add item to cart
   Future<CartModel> addToCart(
       String productId, int quantity, List<String> selectedOptions) async {
     final token = await _getToken();
+
+    final body = {
+      'productId': productId,
+      'quantity': quantity,
+      'options': selectedOptions,
+    };
+
     final response = await http.post(
       Uri.parse('$baseUrl/api/cart/add'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json'
       },
-      body: jsonEncode({
-        'productId': productId,
-        'quantity': quantity,
-        'options': selectedOptions
-      }),
+      body: jsonEncode(body),
     );
-    print('Using token: $token');
-    print("Add to Cart response: ${response.body}");
-    print("Status code: ${response.statusCode}");
+
+    print('ADD TO CART: ${response.statusCode}');
+    print(response.body);
+
     if (response.statusCode == 200 || response.statusCode == 201) {
-      return CartModel.fromJson(jsonDecode(response.body));
+      final decoded = jsonDecode(response.body);
+      return CartModel.fromJson(decoded['data']);
     } else {
-      throw Exception('Failed to add item to cart');
+      throw Exception('Failed to add item: ${response.body}');
     }
   }
 
-  // update cart item
+  // Update cart item
   Future<CartModel> updateCartItem(
       String itemId, int quantity, List<String> selectedOptions) async {
     final token = await _getToken();
+
     final response = await http.put(
-        Uri.parse('$baseUrl/api/cart/items/$itemId'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({'quantity': quantity, 'options': selectedOptions}));
-    if (response.statusCode == 200) {
-      return CartModel.fromJson(jsonDecode(response.body));
-    } else {
-      throw Exception('Failed to update cart item');
-    }
-  }
-
-  // remove item from cart
-  Future<CartModel> removeFromCart(String itemId) async {
-    final token = await _getToken();
-    final response = await http.delete(
       Uri.parse('$baseUrl/api/cart/items/$itemId'),
-      headers: {'Authorization': 'Bearer $token'},
-      body: jsonEncode({'itemId': itemId}),
-    );
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      if (data is Map && data.containsKey('message')) {
-        print('Message: ${data['message']}');
-        return CartModel(items: []);
-      }
-      return CartModel.fromJson(jsonDecode(response.body));
-    } else {
-      throw Exception('Failed to remove item from cart');
-    }
-  }
-
-  // checkout cart
-  Future<Map<String, dynamic>> checkoutCart(
-      String addressId, String? specialRequest) async {
-    final token = await _getToken();
-    final response = await http.post(
-      Uri.parse('$baseUrl/api/cart/checkout'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json'
       },
-      body: jsonEncode(
-          {'addressId': addressId, 'specialRequest': specialRequest}),
+      body: jsonEncode({
+        'quantity': quantity,
+        'options': selectedOptions,
+      }),
     );
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return jsonDecode(response.body);
+
+    print('UPDATE ITEM: ${response.statusCode}');
+    print(response.body);
+
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+      return CartModel.fromJson(decoded['data']);
     } else {
-      throw Exception('Failed to checkout cart');
+      throw Exception('Failed to update cart: ${response.body}');
     }
   }
 
-  //clear entire cart
+  // Remove item
+  Future<CartModel> removeFromCart(String itemId) async {
+    final token = await _getToken();
+
+    final response = await http.delete(
+      Uri.parse('$baseUrl/api/cart/items/$itemId'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json'
+      },
+    );
+
+    print('REMOVE ITEM: ${response.statusCode}');
+    print(response.body);
+
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+      return CartModel.fromJson(decoded['data']);
+    } else {
+      throw Exception('Remove error: ${response.body}');
+    }
+  }
+
+  // Clear cart
   Future<String> clearCart() async {
     final token = await _getToken();
+
     final response = await http.delete(
       Uri.parse('$baseUrl/api/cart'),
       headers: {
@@ -119,10 +130,40 @@ class CartServices {
         'Content-Type': 'application/json'
       },
     );
+
+    print('CLEAR CART: ${response.statusCode}');
+
     if (response.statusCode == 200) {
-      return jsonDecode(response.body)['message'];
+      final decoded = jsonDecode(response.body);
+      return decoded['message'] ?? 'Cart cleared';
     } else {
-      throw Exception('Failed to clear cart');
+      throw Exception('Failed to clear cart: ${response.body}');
+    }
+  }
+
+  // Checkout cart
+  Future<Map<String, dynamic>> checkoutCart(
+      String addressId, String? specialRequest) async {
+    final token = await _getToken();
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/api/cart/checkout'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json'
+      },
+      body: jsonEncode(
+          {'addressId': addressId, 'specialRequest': specialRequest ?? ''}),
+    );
+
+    print('CHECKOUT: ${response.statusCode}');
+    print(response.body);
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final decoded = jsonDecode(response.body);
+      return decoded;
+    } else {
+      throw Exception('Checkout failed: ${response.body}');
     }
   }
 }

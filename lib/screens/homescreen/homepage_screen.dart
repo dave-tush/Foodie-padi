@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:foodie_padi_apps/screens/cart_screen.dart';
-import 'package:foodie_padi_apps/screens/explore_screen.dart';
-import 'package:foodie_padi_apps/screens/favourite_screen.dart';
-import 'package:foodie_padi_apps/screens/first_screen.dart';
-import 'package:foodie_padi_apps/screens/profile_screen.dart';
+import 'package:foodie_padi_apps/screens/homescreen/cart_screen.dart';
+import 'package:foodie_padi_apps/screens/homescreen/explore_screen.dart';
+import 'package:foodie_padi_apps/screens/homescreen/favourite_screen.dart';
+import 'package:foodie_padi_apps/screens/homescreen/first_screen.dart';
+import 'package:foodie_padi_apps/screens/homescreen/profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});

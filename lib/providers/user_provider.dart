@@ -23,6 +23,17 @@ class UserProvider extends ChangeNotifier {
 
   bool get isCustomer => _user?.role == "CUSTOMER";
 
+  Future<void> loadUsersFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final id = prefs.getString('id');
+    final name = prefs.getString('name');
+
+    if (id != null && name != null) {
+      _user = User(id: id, name: name, token: '', preferences: []);
+      notifyListeners();
+    }
+  }
+
   Future<void> saveUsersToLocal(
       User user, String accessToken, String refreshToken) async {
     final prefs = await SharedPreferences.getInstance();

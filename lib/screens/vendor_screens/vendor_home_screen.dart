@@ -56,7 +56,9 @@ class _VendorHomeScreenState extends State<VendorHomeScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: LineChartSample2(),
+        child: LineChartSample2(
+          salesData: [],
+        ),
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,

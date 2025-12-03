@@ -6,7 +6,7 @@ import 'package:foodie_padi_apps/core/constants/app_colors.dart';
 import 'package:foodie_padi_apps/models/product/product_model.dart';
 import 'package:foodie_padi_apps/providers/cart_provider.dart';
 import 'package:foodie_padi_apps/providers/product_provider.dart';
-import 'package:foodie_padi_apps/screens/cart_screen.dart';
+import 'package:foodie_padi_apps/screens/homescreen/cart_screen.dart';
 import 'package:foodie_padi_apps/screens/review_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';

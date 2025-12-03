@@ -85,10 +85,11 @@ class CartProvider extends ChangeNotifier {
       {String? addressId, String? specialRequest}) async {
     _setLoading(true);
     try {
-      final result =
-          await _cartServices.checkoutCart(addressId ?? '', specialRequest);
+      final result = await _cartServices.checkoutCart(
+          addressId ?? '', specialRequest ?? '');
+      print('checkout result: $result');
       // Reset cart after checkout
-      _cart = null;
+      //_cart = null;
       notifyListeners();
       return result;
     } catch (e) {

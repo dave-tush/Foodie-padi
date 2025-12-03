@@ -3,7 +3,7 @@ import 'package:foodie_padi_apps/core/constants/app_assets.dart';
 import 'package:foodie_padi_apps/providers/product_provider.dart';
 import 'package:foodie_padi_apps/widgets/build_meal_card.dart';
 import 'package:provider/provider.dart';
-import '../providers/favourite_provider.dart';
+import '../../providers/favourite_provider.dart';
 
 class FavouriteScreen extends StatelessWidget {
   const FavouriteScreen({super.key});

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:foodie_padi_apps/screens/vendor_screens/vendor_homescreen.dart';
 import 'package:foodie_padi_apps/services/role_service.dart';
 import 'package:foodie_padi_apps/widgets/button.dart';
 import 'package:provider/provider.dart' show Provider;
@@ -9,8 +10,7 @@ import '../core/constants/gaps.dart';
 import '../core/constants/sizes.dart';
 import '../providers/user_provider.dart';
 
-import 'homepage_screen.dart';
-import 'vendor_screens/vendor_home_screen.dart';
+import 'homescreen/homepage_screen.dart';
 
 class ChooseRoleScreen extends StatelessWidget {
   const ChooseRoleScreen({super.key});
@@ -116,7 +116,7 @@ class ChooseRoleScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => VendorHomeScreen(),
+                          builder: (_) => VendorHomeScreens(),
                         ),
                       );
                     }

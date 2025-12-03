@@ -1,0 +1,463 @@
+// refactored CartScreen - clean, null-safe, fixed polling & payment flow
+// Save as lib/screens/cart_screen.dart
+
+// ignore_for_file: use_build_context_synchronously
+
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:foodie_padi_apps/core/constants/app_colors.dart';
+import 'package:foodie_padi_apps/models/cart/cart_model.dart';
+import 'package:foodie_padi_apps/providers/cart_provider.dart';
+import 'package:foodie_padi_apps/providers/payment_provider.dart';
+import 'package:foodie_padi_apps/providers/user_provider.dart';
+import 'package:foodie_padi_apps/screens/payment_methods.dart';
+import 'package:foodie_padi_apps/screens/payment_webview_screen.dart';
+
+import '../../core/constants/app_assets.dart';
+
+class CartScreen extends StatefulWidget {
+  const CartScreen({super.key});
+
+  @override
+  State<CartScreen> createState() => _CartScreenState();
+}
+
+class _CartScreenState extends State<CartScreen> {
+  bool _loading = true;
+  Timer? _pollingTimer;
+  int _pollAttempts = 0;
+  static const int _maxPollAttempts = 40; // e.g. 40 * 3s = 120s
+  static const Duration _pollInterval = Duration(seconds: 3);
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCart();
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadCart() async {
+    try {
+      final cartProvider = Provider.of<CartProvider>(context, listen: false);
+      await cartProvider.fetchCart();
+    } catch (e) {
+      // optionally handle fetch error
+      debugPrint('Failed to load cart: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to load cart')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _startOrderPayment(String orderId) async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final token = userProvider.user?.token ?? '';
+
+    final paymentProvider =
+        Provider.of<PaymentProvider>(context, listen: false);
+
+    try {
+      final result = await paymentProvider.startPayment(orderId);
+
+      // guard against missing fields
+      if (result != null && result['paymentUrl'] != null) {
+        final paymentUrl = result['paymentUrl'] as String;
+        final reference = result['reference'] as String? ?? '';
+
+        if (!mounted) return;
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PaymentWebviewScreen(
+              paymentUrl: paymentUrl,
+              reference: reference,
+              token: token,
+            ),
+          ),
+        );
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Payment initiation failed: invalid response')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Payment initiation error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Payment initiation failed: $e')),
+        );
+      }
+    }
+  }
+
+  void _startPollingOrderStatus(String orderId) {
+    // Cancel existing timer if any
+    _pollingTimer?.cancel();
+    _pollAttempts = 0;
+
+    _pollingTimer = Timer.periodic(_pollInterval, (timer) async {
+      _pollAttempts++;
+      if (_pollAttempts > _maxPollAttempts) {
+        timer.cancel();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Vendor did not respond in time.')),
+          );
+        }
+        return;
+      }
+
+      try {
+        final paymentProvider =
+            Provider.of<PaymentProvider>(context, listen: false);
+        final response =
+            await paymentProvider.paymentService.getOrderStatus(orderId);
+
+        final status = (response['code'] ?? '').toString();
+        debugPrint('Polled order $orderId status: $status');
+
+        // backend status strings are expected to be EXACT values
+        if (status == 'CHECKOUT_SUCCESS') {
+          timer.cancel();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content: Text('Vendor approved! Proceeding to payment...')),
+            );
+          }
+          await _startOrderPayment(orderId);
+        } else if (status == 'CANCELLED' || status == 'REJECTED') {
+          timer.cancel();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Order was $status by vendor.')),
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('Polling error: $e');
+        // keep polling (unless you prefer to stop on first error)
+      }
+    });
+  }
+
+  Widget _buildCartItem(BuildContext context, CartItem item) {
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    item.product.images.isNotEmpty
+                        ? item.product.images[0]
+                        : AppAssets.bg,
+                    width: 80,
+                    height: 80,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.product.name,
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '£${item.unitPrice.toStringAsFixed(2)}',
+                        style: const TextStyle(fontSize: 14, color: Colors.red),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => cartProvider.removeCartItem(item.id),
+                  icon: const Icon(Icons.close, color: Colors.red),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (item.options.isNotEmpty)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: item.options.map((opt) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 4.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(opt.name ?? 'Option'),
+                        Text('£${opt.price?.toStringAsFixed(2) ?? '0.00'}',
+                            style: const TextStyle(color: Colors.red)),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.remove_circle),
+                  onPressed: () {
+                    if (item.quantity > 1) {
+                      cartProvider.updateCartItem(item.id, item.quantity - 1,
+                          item.options.map((e) => e.id).toList());
+                    }
+                  },
+                ),
+                Text('${item.quantity}', style: const TextStyle(fontSize: 16)),
+                IconButton(
+                  icon: const Icon(Icons.add_circle),
+                  onPressed: () => cartProvider.updateCartItem(
+                      item.id,
+                      item.quantity + 1,
+                      item.options.map((e) => e.id).toList()),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cartProvider = Provider.of<CartProvider>(context);
+    final cart = cartProvider.cart;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Cart')),
+      body: _loading
+          ? Center(
+              child: CircularProgressIndicator(color: AppColors.primaryOrange))
+          : (cart == null || cart.items.isEmpty)
+              ? const Center(child: Text('Your cart is empty'))
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Order Summary',
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold)),
+                          InkWell(
+                            onTap: () => Navigator.pop(context),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                  border: Border.all(
+                                      color: AppColors.primaryOrange, width: 2),
+                                  borderRadius: BorderRadius.circular(28)),
+                              child: Padding(
+                                padding: const EdgeInsets.all(10.0),
+                                child: Text('Add Food',
+                                    style: TextStyle(
+                                        color: AppColors.primaryOrange,
+                                        fontSize: 14)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Cart items list
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: cart.items.length,
+                        itemBuilder: (context, idx) =>
+                            _buildCartItem(context, cart.items[idx]),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Delivery Address
+                      ListTile(
+                        leading: const Icon(Icons.location_on,
+                            color: AppColors.secondaryYellow),
+                        title: const Text('Deliver to'),
+                        subtitle: const Text('Shalom Hostel, under G'),
+                        trailing: const Icon(Icons.edit),
+                        onTap: () {},
+                      ),
+                      const Divider(),
+
+                      // Payment method
+                      ListTile(
+                        leading: const Icon(Icons.payment,
+                            color: AppColors.secondaryYellow),
+                        title: const Text('Payment method'),
+                        subtitle: const Text('Transfer'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          // pass actual orderId when navigating from a placed order
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      const PaymentMethodsScreen(orderId: '')));
+                        },
+                      ),
+                      const Divider(),
+
+                      // Promotions
+                      ListTile(
+                        leading: const Icon(Icons.local_offer,
+                            color: AppColors.secondaryYellow),
+                        title: const Text('Promotions'),
+                        subtitle: const Text('FREE DELIVERY 20%'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {},
+                      ),
+                      const Divider(),
+
+                      const SizedBox(height: 10),
+                      const Text('Payment Summary',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 10),
+                      Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Total Items (${cart.items.length})'),
+                            Text(
+                                '£${cartProvider.totalPrice.toStringAsFixed(2)}')
+                          ]),
+                      const SizedBox(height: 6),
+                      const Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [Text('Delivery Fee'), Text('£3.32')]),
+                      const SizedBox(height: 6),
+                      const Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Discount'),
+                            Text('-£1.32',
+                                style: TextStyle(color: Colors.redAccent))
+                          ]),
+                      const Divider(),
+                      Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Total',
+                                style: TextStyle(
+                                    fontSize: 18, fontWeight: FontWeight.bold)),
+                            Text(
+                                '£${cartProvider.totalPrice.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.bold)),
+                          ]),
+                      const SizedBox(height: 20),
+
+                      // Place Order button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryOrange,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12))),
+                          onPressed: () async {
+                            // create order
+                            // create order
+                            final orderResult = await cartProvider.checkout();
+
+                            if (orderResult == null) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content: Text('Failed to create order.')),
+                                );
+                              }
+                              return;
+                            }
+
+                            final data =
+                                orderResult['data'] as Map<String, dynamic>?;
+
+                            final orders =
+                                (data?['orders'] as List<dynamic>?) ?? [];
+
+                            if (orders.isEmpty) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text(
+                                            'No orders returned from server.')));
+                              }
+                              return;
+                            }
+
+                            final order = orders.first as Map<String, dynamic>;
+                            final orderId = order['id'] as String? ?? '';
+                            final status = (order['status'] as String?) ?? '';
+
+                            if (status == 'PENDING') {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text(
+                                            'Order placed! Waiting for vendor approval...'),
+                                        duration: Duration(seconds: 3)));
+                              }
+
+                              // start polling for approval
+                              _startPollingOrderStatus(orderId);
+                            } else if (status == 'AWAITING_PAYMENT') {
+                              await _startOrderPayment(orderId);
+                            } else {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                        content:
+                                            Text('Order status: $status')));
+                              }
+                            }
+                          },
+                          child: const Text('Place Order',
+                              style:
+                                  TextStyle(fontSize: 18, color: Colors.white)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+    );
+  }
+}

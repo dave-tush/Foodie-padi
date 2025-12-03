@@ -1,3 +1,4 @@
+// lib/screens/first_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:foodie_padi_apps/core/constants/app_assets.dart';
@@ -9,7 +10,7 @@ import 'package:foodie_padi_apps/widgets/search.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../providers/product_provider.dart';
+import '../../providers/product_provider.dart';
 
 class FirstScreen extends StatefulWidget {
   const FirstScreen({super.key});
@@ -32,40 +33,61 @@ class _FirstScreenState extends State<FirstScreen> {
     'DRINKS',
   ];
   int _selectedCategoryIndex = 0; // default is "All"
+
   @override
   void initState() {
     super.initState();
     _setGreeting();
     _loadSavedCategory();
     _checkFirstLunch();
+
+    // Load initial products and set up scroll listener in a microtask so
+    // Provider is available in the widget tree.
     Future.microtask(() {
       final provider = Provider.of<ProductProvider>(context, listen: false);
       provider.loadProducts(reset: true);
-      _scrollController.addListener(() {
-        if (_scrollController.position.pixels >=
-                _scrollController.position.maxScrollExtent - 200 &&
-            !_isLoadingMore &&
-            !provider.isLastPage) {
-          _loadMoreProducts();
-        }
-      });
+      _scrollController.addListener(_onScroll);
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    final provider = Provider.of<ProductProvider>(context, listen: false);
+
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        !_isLoadingMore &&
+        !provider.isLastPage) {
+      _loadMoreProducts();
+    }
   }
 
   Future<void> _loadMoreProducts() async {
-    setState(() {
-      _isLoadingMore = true;
-    });
-    await Provider.of<ProductProvider>(context, listen: false).loadProducts();
-    setState(() {
-      _isLoadingMore = false;
-    });
+    final provider = Provider.of<ProductProvider>(context, listen: false);
+
+    if (_isLoadingMore || provider.isLastPage) return;
+
+    setState(() => _isLoadingMore = true);
+
+    // productProvider.loadProducts handles internal guard for simultaneous loads
+    await provider.loadProducts();
+
+    if (mounted) {
+      setState(() => _isLoadingMore = false);
+    }
   }
 
   void _setGreeting() {
-    if (DateTime.now().hour < 12) {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
       greeting = "Good Morning";
-    } else if (DateTime.now().hour < 18) {
+    } else if (hour < 18) {
       greeting = "Good Afternoon";
     } else {
       greeting = "Good Evening";
@@ -93,35 +115,56 @@ class _FirstScreenState extends State<FirstScreen> {
     final prefs = await SharedPreferences.getInstance();
     final firstLunch = prefs.getBool('first_lunch') ?? true;
     final hasLaunchedBefore = prefs.getBool('hasLaunchedBefore') ?? false;
-    // final user = Provider.of<UserProvider>(context, listen: false).user;
 
     if (!hasLaunchedBefore) {
       await prefs.setBool('hasLaunchedBefore', true);
     }
 
-    if (firstLunch) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Welcome to Foodie Padi!'),
-          content: const Text('Enjoy your first lunch with us!'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                prefs.setBool('first_lunch', false);
-              },
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
+    if (firstLunch && mounted) {
+      // showDialog must be called when widget is mounted
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Welcome to Foodie Padi!'),
+            content: const Text('Enjoy your first lunch with us!'),
+            actions: [
+              TextButton(
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setBool('first_lunch', false);
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      });
     }
+  }
+
+  // Local filter of products by category (so provider doesn't need to change)
+  List<dynamic> _filterProductsByCategory(List products) {
+    final selected = categories[_selectedCategoryIndex];
+    if (selected == 'All') return products;
+    // best-effort: assume product has either `category` or `mealType` or `type`
+    return products.where((p) {
+      try {
+        final pCat = (p?.category ?? p?.mealType ?? p?.type)?.toString();
+        if (pCat == null) return false;
+        return pCat.toLowerCase() == selected.toLowerCase();
+      } catch (_) {
+        // if product model doesn't have fields, fallback to true (show all)
+        return true;
+      }
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     final user = Provider.of<UserProvider>(context).user;
+
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -200,7 +243,7 @@ class _FirstScreenState extends State<FirstScreen> {
                       ),
                       SizedBox(height: 24.h),
                       Text(
-                        "$greeting, \n${user?.name}",
+                        "$greeting, \n${user?.name ?? 'Guest'}",
                         style: TextStyle(
                             fontSize: 20.sp, fontWeight: FontWeight.bold),
                       ),
@@ -210,28 +253,41 @@ class _FirstScreenState extends State<FirstScreen> {
                         style: TextStyle(fontSize: 14.sp, color: Colors.grey),
                       ),
                       SizedBox(height: 20.h),
-                      // Replace this inside FirstScreen where you currently have `SearchScreen()`
-                      GestureDetector(
+
+                      // Clickable fake search bar (reliable tap)
+                      InkWell(
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(builder: (_) => SearchScreen()),
                           );
                         },
-                        child: TextField(
-                          enabled: false, // disable direct typing here
-                          decoration: InputDecoration(
-                            hintText: 'Search dishes, vendors',
-                            prefixIcon: Icon(Icons.search),
-                            filled: true,
-                            fillColor: Colors.grey.shade100,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.r),
-                              borderSide: BorderSide.none,
-                            ),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 12.w, vertical: 14.h),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.search, color: Colors.grey),
+                              SizedBox(width: 10.w),
+                              Expanded(
+                                child: Text(
+                                  'Search dishes, vendors',
+                                  style: TextStyle(
+                                      fontSize: 14.sp, color: Colors.grey),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              SizedBox(width: 6.w),
+                              Icon(Icons.mic_none, color: Colors.grey)
+                            ],
                           ),
                         ),
                       ),
+
                       SizedBox(height: 20.h),
 
                       // Promo Carousel
@@ -245,17 +301,23 @@ class _FirstScreenState extends State<FirstScreen> {
                           scrollDirection: Axis.horizontal,
                           itemCount: categories.length,
                           itemBuilder: (context, index) {
+                            final selected = _selectedCategoryIndex == index;
                             return Padding(
                               padding: EdgeInsets.only(right: 12.w),
                               child: ChoiceChip(
                                 label: Text(categories[index]),
-                                selected: _selectedCategoryIndex == index,
+                                selected: selected,
                                 selectedColor: Colors.green.shade100,
-                                onSelected: (_) {
+                                onSelected: (_) async {
                                   setState(() {
                                     _selectedCategoryIndex = index;
                                   });
-                                  _saveSelectedCategory(index);
+                                  await _saveSelectedCategory(index);
+
+                                  // Reset provider and reload products from page 1
+                                  await Provider.of<ProductProvider>(context,
+                                          listen: false)
+                                      .loadProducts(reset: true);
                                 },
                               ),
                             );
@@ -270,10 +332,12 @@ class _FirstScreenState extends State<FirstScreen> {
                 // Meals Grid (sliver version)
                 Consumer<ProductProvider>(
                   builder: (context, productProvider, child) {
-                    final products = productProvider.products;
+                    final rawProducts = productProvider.products;
+                    final filteredProducts =
+                        _filterProductsByCategory(rawProducts);
 
                     // Initial loading
-                    if (productProvider.isLoading && products.isEmpty) {
+                    if (productProvider.isLoading && rawProducts.isEmpty) {
                       return SliverToBoxAdapter(
                         child: Center(
                           child: Padding(
@@ -284,7 +348,7 @@ class _FirstScreenState extends State<FirstScreen> {
                       );
                     }
 
-                    if (products.isEmpty) {
+                    if (filteredProducts.isEmpty) {
                       return SliverToBoxAdapter(
                         child: Center(
                           child: Padding(
@@ -299,11 +363,15 @@ class _FirstScreenState extends State<FirstScreen> {
                       );
                     }
 
+                    // include an extra child for loading indicator (when loading more)
+                    final childCount = filteredProducts.length +
+                        (_isLoadingMore || productProvider.isLoading ? 1 : 0);
+
                     return SliverGrid(
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
-                          // 🔑 If this is the last item and we are still loading → show spinner
-                          if (index == products.length) {
+                          // If this is the extra loading tile
+                          if (index == filteredProducts.length) {
                             return Center(
                               child: Padding(
                                 padding: EdgeInsets.all(12.r),
@@ -312,23 +380,23 @@ class _FirstScreenState extends State<FirstScreen> {
                             );
                           }
 
-                          // 🔑 Trigger load more when we scroll to the last product
-                          if (index == products.length - 1 &&
-                              !productProvider.isLoading &&
-                              !productProvider.isLastPage) {
-                            productProvider.loadProducts();
-                          }
+                          final product = filteredProducts[index];
 
-                          final product = products[index];
+                          // navigate to details on tap
                           return InkWell(
                             onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ProductDetailsScreen(
-                                      productId: product.id),
-                                ),
-                              );
+                              try {
+                                final id = product.id;
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        ProductDetailsScreen(productId: id),
+                                  ),
+                                );
+                              } catch (_) {
+                                // fallback: do nothing if product lacks id
+                              }
                             },
                             child: buildMealCard(
                               context: context,
@@ -337,14 +405,12 @@ class _FirstScreenState extends State<FirstScreen> {
                                   ? product.images.first
                                   : AppAssets.bg,
                               title: product.name,
-                              rating: product.averageRating.toDouble(),
+                              rating: (product.averageRating ?? 0).toDouble(),
                               price: product.price,
                             ),
                           );
                         },
-                        // 👇 Add +1 if still loading next page
-                        childCount: products.length +
-                            (productProvider.isLoading ? 1 : 0),
+                        childCount: childCount,
                       ),
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,

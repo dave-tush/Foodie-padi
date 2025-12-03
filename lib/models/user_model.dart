@@ -31,7 +31,7 @@ class User {
     required this.token,
   });
 
-  factory User.fromJson(Map<String, dynamic> json, String token) {
+  factory User.fromJson(Map<String, dynamic> json, String? token) {
     return User(
       id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
@@ -46,10 +46,10 @@ class User {
           ? (json['addresses'] as List)
               .map((addr) => Address.fromJson(addr))
               .toList()
-          : null,
+          : [],
       brandName: json['brandName']?.toString(),
       brandLogo: json['brandLogo']?.toString(),
-      token: token,
+      token: token ?? '',
     );
   }
 
@@ -64,7 +64,8 @@ class User {
       'avatarUrl': avatarUrl,
       'preferences': preferences,
       'bio': bio,
-      'addresses': address!.map((addr) => addr.toJson()).toList(),
+      'addresses':
+          address?.map((addr) => addr.toJson()).toList() ?? [], // ✅ safe
       'brandName': brandName,
       'brandLogo': brandLogo,
       'token': token,
