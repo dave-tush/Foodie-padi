@@ -1,17 +1,39 @@
 // lib/screens/first_screen.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:foodie_padi_apps/core/constants/app_assets.dart';
-import 'package:foodie_padi_apps/providers/user_provider.dart';
+import 'package:foodie_padi_apps/core/constants/app_colors.dart';
+import 'package:foodie_padi_apps/models/product/product_model.dart';
+import 'package:foodie_padi_apps/providers/product_provider.dart';
+import 'package:foodie_padi_apps/providers/profile_provider.dart';
 import 'package:foodie_padi_apps/screens/product_details_screen.dart';
 import 'package:foodie_padi_apps/widgets/build_meal_card.dart';
 import 'package:foodie_padi_apps/widgets/promo_carousel.dart';
-import 'package:foodie_padi_apps/widgets/search.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../providers/product_provider.dart';
+/// Constants for the first screen
+class _FirstScreenConstants {
+  static const String categoryKey = 'selectedCategoryIndex';
+  static const String firstLunchKey = 'first_lunch';
+  static const String hasLaunchedBeforeKey = 'hasLaunchedBefore';
+  static const double scrollThreshold = 200.0;
+  static const int gridCrossAxisCount = 2;
+  static const double gridChildAspectRatio = 0.75;
+  static const Duration searchDebounceDelay = Duration(milliseconds: 300);
 
+  static const List<String> categories = [
+    'All',
+    'BREAKFAST',
+    'LUNCH',
+    'DINNER',
+    'SNACKS',
+    'DRINKS',
+  ];
+}
+
+/// Main home screen displaying products with search and category filters
 class FirstScreen extends StatefulWidget {
   const FirstScreen({super.key});
 
@@ -20,409 +42,503 @@ class FirstScreen extends StatefulWidget {
 }
 
 class _FirstScreenState extends State<FirstScreen> {
-  String greeting = "Good Morning";
+  final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  bool _isLoadingMore = false;
+  Timer? _searchDebounceTimer;
 
-  final List<String> categories = [
-    'All',
-    'BREAKFAST',
-    'LUNCH',
-    'DINNER',
-    'SNACKS',
-    'DRINKS',
-  ];
-  int _selectedCategoryIndex = 0; // default is "All"
+  String _searchQuery = "";
+  int _selectedCategoryIndex = 0;
+  String _greeting = "Good Morning";
+  List<ProductModel>? _cachedFilteredProducts;
 
   @override
   void initState() {
     super.initState();
-    _setGreeting();
-    _loadSavedCategory();
-    _checkFirstLunch();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final profileProvider =
+          Provider.of<ProfileProvider>(context, listen: false);
+      if (profileProvider.user == null) {
+        profileProvider.fetchProfile();
+      } else {
+        _setGreeting();
+      }
+    });
+    _initializeScreen();
+  }
 
-    // Load initial products and set up scroll listener in a microtask so
-    // Provider is available in the widget tree.
-    Future.microtask(() {
-      final provider = Provider.of<ProductProvider>(context, listen: false);
-      provider.loadProducts(reset: true);
-      _scrollController.addListener(_onScroll);
+  Future<void> _initializeScreen() async {
+    _setGreeting();
+    await _loadSavedCategory();
+    _checkFirstLaunch();
+
+    // Initialize product loading and scroll listener
+    if (mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final provider = Provider.of<ProductProvider>(context, listen: false);
+        provider.loadProducts(reset: true);
+        _setupScrollListener(provider);
+      });
+    }
+  }
+
+  void _setupScrollListener(ProductProvider provider) {
+    _scrollController.addListener(() {
+      if (!mounted) return;
+
+      final position = _scrollController.position;
+      final isNearBottom = position.pixels >=
+          position.maxScrollExtent - _FirstScreenConstants.scrollThreshold;
+
+      if (isNearBottom && !provider.isLoading && !provider.isLastPage) {
+        provider.loadProducts();
+      }
     });
   }
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
+    _searchDebounceTimer?.cancel();
     _scrollController.dispose();
+    _searchController.dispose();
     super.dispose();
-  }
-
-  void _onScroll() {
-    final provider = Provider.of<ProductProvider>(context, listen: false);
-
-    if (_scrollController.position.pixels >=
-            _scrollController.position.maxScrollExtent - 200 &&
-        !_isLoadingMore &&
-        !provider.isLastPage) {
-      _loadMoreProducts();
-    }
-  }
-
-  Future<void> _loadMoreProducts() async {
-    final provider = Provider.of<ProductProvider>(context, listen: false);
-
-    if (_isLoadingMore || provider.isLastPage) return;
-
-    setState(() => _isLoadingMore = true);
-
-    // productProvider.loadProducts handles internal guard for simultaneous loads
-    await provider.loadProducts();
-
-    if (mounted) {
-      setState(() => _isLoadingMore = false);
-    }
   }
 
   void _setGreeting() {
     final hour = DateTime.now().hour;
-    if (hour < 12) {
-      greeting = "Good Morning";
-    } else if (hour < 18) {
-      greeting = "Good Afternoon";
-    } else {
-      greeting = "Good Evening";
-    }
-  }
-
-  Future<void> _loadSavedCategory() async {
-    final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _selectedCategoryIndex = prefs.getInt('selectedCategoryIndex') ?? 0;
+      if (hour < 12) {
+        _greeting = "Good Morning";
+      } else if (hour < 18) {
+        _greeting = "Good Afternoon";
+      } else {
+        _greeting = "Good Evening";
+      }
     });
   }
 
+  Future<void> _loadSavedCategory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (mounted) {
+        setState(() {
+          _selectedCategoryIndex =
+              prefs.getInt(_FirstScreenConstants.categoryKey) ?? 0;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading saved category: $e');
+    }
+  }
+
   Future<void> _saveSelectedCategory(int index) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('selectedCategoryIndex', index);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_FirstScreenConstants.categoryKey, index);
+    } catch (e) {
+      debugPrint('Error saving category: $e');
+    }
   }
 
   Future<void> _refreshProducts() async {
-    await Provider.of<ProductProvider>(context, listen: false)
-        .loadProducts(reset: true);
-  }
-
-  Future<void> _checkFirstLunch() async {
-    final prefs = await SharedPreferences.getInstance();
-    final firstLunch = prefs.getBool('first_lunch') ?? true;
-    final hasLaunchedBefore = prefs.getBool('hasLaunchedBefore') ?? false;
-
-    if (!hasLaunchedBefore) {
-      await prefs.setBool('hasLaunchedBefore', true);
-    }
-
-    if (firstLunch && mounted) {
-      // showDialog must be called when widget is mounted
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Welcome to Foodie Padi!'),
-            content: const Text('Enjoy your first lunch with us!'),
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  Navigator.of(context).pop();
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.setBool('first_lunch', false);
-                },
-                child: const Text('OK'),
-              ),
-            ],
-          ),
+    try {
+      await Provider.of<ProductProvider>(context, listen: false)
+          .loadProducts(reset: true);
+      _clearCache();
+    } catch (e) {
+      debugPrint('Error refreshing products: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to refresh products')),
         );
-      });
+      }
     }
   }
 
-  // Local filter of products by category (so provider doesn't need to change)
-  List<dynamic> _filterProductsByCategory(List products) {
-    final selected = categories[_selectedCategoryIndex];
-    if (selected == 'All') return products;
-    // best-effort: assume product has either `category` or `mealType` or `type`
-    return products.where((p) {
-      try {
-        final pCat = (p?.category ?? p?.mealType ?? p?.type)?.toString();
-        if (pCat == null) return false;
-        return pCat.toLowerCase() == selected.toLowerCase();
-      } catch (_) {
-        // if product model doesn't have fields, fallback to true (show all)
-        return true;
+  Future<void> _checkFirstLaunch() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final firstLunch =
+          prefs.getBool(_FirstScreenConstants.firstLunchKey) ?? true;
+      final hasLaunchedBefore =
+          prefs.getBool(_FirstScreenConstants.hasLaunchedBeforeKey) ?? false;
+
+      if (!hasLaunchedBefore) {
+        await prefs.setBool(_FirstScreenConstants.hasLaunchedBeforeKey, true);
       }
-    }).toList();
+
+      if (firstLunch && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _showWelcomeDialog();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error checking first launch: $e');
+    }
+  }
+
+  Future<void> _showWelcomeDialog() async {
+    if (!mounted) return;
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Welcome to Foodie Padi!'),
+        content: const Text('Enjoy your first lunch with us!'),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              try {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool(_FirstScreenConstants.firstLunchKey, false);
+              } catch (e) {
+                debugPrint('Error saving first lunch flag: $e');
+              }
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _onSearchChanged(String value) {
+    _searchDebounceTimer?.cancel();
+    _searchDebounceTimer = Timer(_FirstScreenConstants.searchDebounceDelay, () {
+      if (mounted) {
+        setState(() {
+          _searchQuery = value.trim().toLowerCase();
+          _clearCache();
+        });
+      }
+    });
+  }
+
+  void _clearSearch() {
+    _searchDebounceTimer?.cancel();
+    setState(() {
+      _searchController.clear();
+      _searchQuery = "";
+      _clearCache();
+    });
+  }
+
+  void _clearCache() {
+    _cachedFilteredProducts = null;
+  }
+
+  List<ProductModel> _filterProducts(List<ProductModel> products) {
+    // Return cached result if available
+    if (_cachedFilteredProducts != null && _searchQuery.isEmpty) {
+      return _cachedFilteredProducts!;
+    }
+
+    var filtered = List<ProductModel>.from(products);
+
+    // Filter by category
+    final selectedCategory =
+        _FirstScreenConstants.categories[_selectedCategoryIndex];
+    if (selectedCategory != 'All') {
+      filtered = filtered
+          .where(
+              (product) => product.category?.toUpperCase() == selectedCategory)
+          .toList();
+    }
+
+    // Filter by search query
+    if (_searchQuery.isNotEmpty) {
+      filtered = filtered
+          .where((product) =>
+              product.name.toLowerCase().contains(_searchQuery) ||
+              (product.description?.toLowerCase().contains(_searchQuery) ??
+                  false) ||
+              (product.vendorId?.toLowerCase().contains(_searchQuery) ?? false))
+          .toList();
+    }
+
+    // Cache result if no search query
+    if (_searchQuery.isEmpty) {
+      _cachedFilteredProducts = filtered;
+    }
+
+    return filtered;
+  }
+
+  void _onCategorySelected(int index) async {
+    setState(() {
+      _selectedCategoryIndex = index;
+      _clearCache();
+    });
+    await _saveSelectedCategory(index);
+  }
+
+  void _navigateToProductDetails(String productId) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProductDetailsScreen(productId: productId),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = Provider.of<UserProvider>(context).user;
+    final profileProvider = Provider.of<ProfileProvider>(context).user;
 
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
-          child: RefreshIndicator(
-            onRefresh: _refreshProducts,
-            child: CustomScrollView(
-              controller: _scrollController,
-              slivers: [
-                // Header Section
-                SliverToBoxAdapter(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(height: 20.h),
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            backgroundColor: Colors.grey.shade200,
-                            child: const Icon(Icons.menu, color: Colors.black),
-                          ),
-                          SizedBox(width: 8.w),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'DELIVER TO',
-                                style: TextStyle(
-                                  fontSize: 12.sp,
-                                  color: Colors.orange,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Row(
-                                children: [
-                                  Text(
-                                    'Oke Afin',
-                                    style: TextStyle(
-                                      fontSize: 14.sp,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  const Icon(Icons.keyboard_arrow_down_rounded),
-                                ],
-                              ),
-                            ],
-                          ),
-                          const Spacer(),
-                          Stack(
-                            alignment: Alignment.topRight,
-                            children: [
-                              const CircleAvatar(
-                                backgroundColor: Colors.black,
-                                child: Icon(Icons.shopping_bag_outlined,
-                                    color: Colors.white),
-                              ),
-                              Positioned(
-                                right: 2,
-                                top: 2,
-                                child: Container(
-                                  padding: EdgeInsets.all(4.r),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.orange,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Text(
-                                    '2',
-                                    style: TextStyle(
-                                        color: Colors.white, fontSize: 10.sp),
-                                  ),
-                                ),
-                              )
-                            ],
-                          )
-                        ],
-                      ),
-                      SizedBox(height: 24.h),
-                      Text(
-                        "$greeting, \n${user?.name ?? 'Guest'}",
-                        style: TextStyle(
-                            fontSize: 20.sp, fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 6.h),
-                      Text(
-                        "What are you craving?",
-                        style: TextStyle(fontSize: 14.sp, color: Colors.grey),
-                      ),
-                      SizedBox(height: 20.h),
+        child: RefreshIndicator(
+          onRefresh: _refreshProducts,
+          child: CustomScrollView(
+            controller: _scrollController,
+            slivers: [
+              _buildHeaderSection(
+                  profileProvider?.username, profileProvider?.address),
+              _buildCategorySection(),
+              _buildProductsSection(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-                      // Clickable fake search bar (reliable tap)
-                      InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => SearchScreen()),
-                          );
-                        },
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 12.w, vertical: 14.h),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.search, color: Colors.grey),
-                              SizedBox(width: 10.w),
-                              Expanded(
-                                child: Text(
-                                  'Search dishes, vendors',
-                                  style: TextStyle(
-                                      fontSize: 14.sp, color: Colors.grey),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              SizedBox(width: 6.w),
-                              Icon(Icons.mic_none, color: Colors.grey)
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      SizedBox(height: 20.h),
-
-                      // Promo Carousel
-                      const PromoCarousel(),
-                      SizedBox(height: 20.h),
-
-                      // Category Tabs
-                      SizedBox(
-                        height: 40.h,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: categories.length,
-                          itemBuilder: (context, index) {
-                            final selected = _selectedCategoryIndex == index;
-                            return Padding(
-                              padding: EdgeInsets.only(right: 12.w),
-                              child: ChoiceChip(
-                                label: Text(categories[index]),
-                                selected: selected,
-                                selectedColor: Colors.green.shade100,
-                                onSelected: (_) async {
-                                  setState(() {
-                                    _selectedCategoryIndex = index;
-                                  });
-                                  await _saveSelectedCategory(index);
-
-                                  // Reset provider and reload products from page 1
-                                  await Provider.of<ProductProvider>(context,
-                                          listen: false)
-                                      .loadProducts(reset: true);
-                                },
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      SizedBox(height: 16.h),
-                    ],
+  /// Builds the header section with greeting, search bar, and promo carousel
+  Widget _buildHeaderSection(String? userName, List? address) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding:
+            EdgeInsets.only(left: 16.w, right: 16.w, top: 36.h, bottom: 16.h),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 40.w,
+                  height: 40.h,
+                  decoration: BoxDecoration(
+                    color: AppColors.grey.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    onPressed: () {},
+                    icon: const Icon(Icons.menu),
                   ),
                 ),
-
-                // Meals Grid (sliver version)
-                Consumer<ProductProvider>(
-                  builder: (context, productProvider, child) {
-                    final rawProducts = productProvider.products;
-                    final filteredProducts =
-                        _filterProductsByCategory(rawProducts);
-
-                    // Initial loading
-                    if (productProvider.isLoading && rawProducts.isEmpty) {
-                      return SliverToBoxAdapter(
-                        child: Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(20.r),
-                            child: const CircularProgressIndicator(),
-                          ),
-                        ),
-                      );
-                    }
-
-                    if (filteredProducts.isEmpty) {
-                      return SliverToBoxAdapter(
-                        child: Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(20.r),
-                            child: Text(
-                              'No meals available',
-                              style: TextStyle(
-                                  fontSize: 16.sp, color: Colors.grey),
-                            ),
-                          ),
-                        ),
-                      );
-                    }
-
-                    // include an extra child for loading indicator (when loading more)
-                    final childCount = filteredProducts.length +
-                        (_isLoadingMore || productProvider.isLoading ? 1 : 0);
-
-                    return SliverGrid(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          // If this is the extra loading tile
-                          if (index == filteredProducts.length) {
-                            return Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(12.r),
-                                child: const CircularProgressIndicator(),
-                              ),
-                            );
-                          }
-
-                          final product = filteredProducts[index];
-
-                          // navigate to details on tap
-                          return InkWell(
-                            onTap: () {
-                              try {
-                                final id = product.id;
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        ProductDetailsScreen(productId: id),
-                                  ),
-                                );
-                              } catch (_) {
-                                // fallback: do nothing if product lacks id
-                              }
-                            },
-                            child: buildMealCard(
-                              context: context,
-                              id: product.id,
-                              imgPath: product.images.isNotEmpty
-                                  ? product.images.first
-                                  : AppAssets.bg,
-                              title: product.name,
-                              rating: (product.averageRating ?? 0).toDouble(),
-                              price: product.price,
-                            ),
-                          );
-                        },
-                        childCount: childCount,
-                      ),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 10.h,
-                        crossAxisSpacing: 10.w,
-                        childAspectRatio: 0.75,
-                      ),
-                    );
-                  },
-                ),
+                SizedBox(width: 10.w),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'DELIVER TO',
+                      style: TextStyle(
+                          fontSize: 16.sp,
+                          color: AppColors.primaryOrange,
+                          fontWeight: FontWeight.w600),
+                    ),
+                    Text(
+                      address?.first.street ?? 'No address',
+                      style: TextStyle(fontSize: 14.sp, color: Colors.grey),
+                    ),
+                  ],
+                )
               ],
             ),
+            SizedBox(height: 16.h),
+            Text(
+              userName != null
+                  ? "$_greeting,\n$userName"
+                  : "$_greeting,\nloading...",
+              style: TextStyle(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 6.h),
+            Text(
+              "What are you craving?",
+              style: TextStyle(fontSize: 14.sp, color: Colors.grey),
+            ),
+            SizedBox(height: 16.h),
+            _buildSearchBar(),
+            SizedBox(height: 20.h),
+            const PromoCarousel(),
+            SizedBox(height: 16.h),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Builds the search bar widget
+  Widget _buildSearchBar() {
+    return TextField(
+      controller: _searchController,
+      onChanged: _onSearchChanged,
+      decoration: InputDecoration(
+        hintText: 'Search meals or vendors...',
+        prefixIcon: const Icon(Icons.search),
+        suffixIcon: _searchQuery.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: _clearSearch,
+                tooltip: 'Clear search',
+              )
+            : null,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+      ),
+    );
+  }
+
+  /// Builds the category filter section
+  Widget _buildCategorySection() {
+    return SliverToBoxAdapter(
+      child: Container(
+        color: Colors.white,
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+        child: SizedBox(
+          height: 40.h,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: _FirstScreenConstants.categories.length,
+            itemBuilder: (context, index) {
+              final isSelected = _selectedCategoryIndex == index;
+              return Padding(
+                padding: EdgeInsets.only(right: 8.w),
+                child: ChoiceChip(
+                  label: Text(_FirstScreenConstants.categories[index]),
+                  selected: isSelected,
+                  onSelected: (_) => _onCategorySelected(index),
+                  selectedColor:
+                      Theme.of(context).primaryColor.withOpacity(0.2),
+                  checkmarkColor: Theme.of(context).primaryColor,
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Builds the products grid section
+  Widget _buildProductsSection() {
+    return Consumer<ProductProvider>(
+      builder: (context, productProvider, child) {
+        final products = _filterProducts(productProvider.products);
+
+        if (productProvider.isLoading && products.isEmpty) {
+          return _buildLoadingIndicator();
+        }
+
+        if (products.isEmpty) {
+          return _buildEmptyState();
+        }
+
+        return SliverPadding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+          sliver: SliverGrid(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                if (index == products.length && productProvider.isLoading) {
+                  return _buildLoadingMoreIndicator();
+                }
+
+                final product = products[index];
+                return _buildProductCard(product);
+              },
+              childCount: products.length + (productProvider.isLoading ? 1 : 0),
+            ),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: _FirstScreenConstants.gridCrossAxisCount,
+              mainAxisSpacing: 10.h,
+              crossAxisSpacing: 10.w,
+              childAspectRatio: _FirstScreenConstants.gridChildAspectRatio,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Builds a product card widget
+  Widget _buildProductCard(ProductModel product) {
+    return InkWell(
+      onTap: () => _navigateToProductDetails(product.id),
+      borderRadius: BorderRadius.circular(12.r),
+      child: buildMealCard(
+        context: context,
+        id: product.id,
+        imgPath:
+            product.images.isNotEmpty ? product.images.first : AppAssets.bg,
+        title: product.name,
+        rating: product.averageRating,
+        price: product.price,
+      ),
+    );
+  }
+
+  /// Builds the initial loading indicator
+  Widget _buildLoadingIndicator() {
+    return SliverToBoxAdapter(
+      child: Center(
+        child: Padding(
+          padding: EdgeInsets.all(20.r),
+          child: const CircularProgressIndicator(),
+        ),
+      ),
+    );
+  }
+
+  /// Builds the loading more indicator for pagination
+  Widget _buildLoadingMoreIndicator() {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(12.0),
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+
+  /// Builds the empty state widget
+  Widget _buildEmptyState() {
+    return SliverToBoxAdapter(
+      child: Center(
+        child: Padding(
+          padding: EdgeInsets.all(20.r),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.restaurant_menu,
+                size: 64.sp,
+                color: Colors.grey,
+              ),
+              SizedBox(height: 16.h),
+              Text(
+                'No meals found',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              if (_searchQuery.isNotEmpty) ...[
+                SizedBox(height: 8.h),
+                Text(
+                  'Try adjusting your search or filter',
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ),

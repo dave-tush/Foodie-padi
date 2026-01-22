@@ -30,9 +30,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
   @override
   void initState() {
     super.initState();
-    final productProvider =
-        Provider.of<ProductProvider>(context, listen: false);
-    productProvider.loadProducts(reset: true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final productProvider =
+          Provider.of<ProductProvider>(context, listen: false);
+      productProvider.loadProducts(reset: true);
+    });
 
     _scrollController.addListener(() {
       final provider = Provider.of<ProductProvider>(context, listen: false);

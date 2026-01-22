@@ -17,6 +17,7 @@ import 'package:foodie_padi_apps/screens/splash_screen.dart';
 import 'package:foodie_padi_apps/screens/vendor_screens/add_food_screen.dart';
 import 'package:foodie_padi_apps/screens/vendor_screens/vendor_homescreen.dart';
 import 'package:foodie_padi_apps/services/cart_services.dart';
+import 'package:foodie_padi_apps/services/customer_order_stats_services.dart';
 import 'package:foodie_padi_apps/services/payment_service.dart';
 import 'package:foodie_padi_apps/services/product_services.dart';
 import 'package:foodie_padi_apps/services/profile_services.dart';
@@ -60,8 +61,11 @@ void main() async {
               dotenv.env['BASE_URL'] ?? 'http://localhost:3000',
               token: userProvider.accessToken ?? ''))),
       ChangeNotifierProvider(
-          create: (_) => ProfileProvider(ProfileServices(
-              dotenv.env['BASE_URL'] ?? 'http://localhost:3000'))),
+          create: (_) => ProfileProvider(
+              ProfileServices(
+                  dotenv.env['BASE_URL'] ?? 'http://localhost:3000'),
+              CustomerOrderStatsService(
+                  dotenv.env['BASE_URL'] ?? 'http://localhost:3000'))),
       ChangeNotifierProvider(
           create: (_) => CartProvider(
               CartServices(dotenv.env['BASE_URL'] ?? 'http://localhost:3000'))),
