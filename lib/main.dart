@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:foodie_padi_apps/providers/favourite_provider.dart';
 import 'package:foodie_padi_apps/providers/food_provider.dart';
+import 'package:foodie_padi_apps/providers/notification_provider.dart';
 import 'package:foodie_padi_apps/providers/onboarding_provider.dart';
 import 'package:foodie_padi_apps/providers/payment_provider.dart';
 import 'package:foodie_padi_apps/providers/profile_provider.dart';
@@ -18,6 +19,7 @@ import 'package:foodie_padi_apps/screens/vendor_screens/add_food_screen.dart';
 import 'package:foodie_padi_apps/screens/vendor_screens/vendor_homescreen.dart';
 import 'package:foodie_padi_apps/services/cart_services.dart';
 import 'package:foodie_padi_apps/services/customer_order_stats_services.dart';
+import 'package:foodie_padi_apps/services/notification_services.dart';
 import 'package:foodie_padi_apps/services/payment_service.dart';
 import 'package:foodie_padi_apps/services/product_services.dart';
 import 'package:foodie_padi_apps/services/profile_services.dart';
@@ -53,6 +55,11 @@ void main() async {
       ChangeNotifierProvider(create: (_) => FavouriteProvider()),
       ChangeNotifierProvider(create: (_) => SignUpProvider()),
       ChangeNotifierProvider(create: (_) => RoleProvider()),
+      ChangeNotifierProvider(
+          create: (_) => NotificationProvider(
+                  notificationServices: NotificationServices(
+                dotenv.env['BASE_URL'] ?? 'http://localhost:3000',
+              ))),
       ChangeNotifierProvider(
           create: (_) => ReviewsProvider(ReviewService(
               baseUrl: dotenv.env['BASE_URL'] ?? 'http://localhost:3000'))),

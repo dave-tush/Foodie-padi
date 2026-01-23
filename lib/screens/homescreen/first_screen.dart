@@ -5,10 +5,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:foodie_padi_apps/core/constants/app_assets.dart';
 import 'package:foodie_padi_apps/core/constants/app_colors.dart';
 import 'package:foodie_padi_apps/models/product/product_model.dart';
+import 'package:foodie_padi_apps/providers/notification_provider.dart';
 import 'package:foodie_padi_apps/providers/product_provider.dart';
 import 'package:foodie_padi_apps/providers/profile_provider.dart';
+import 'package:foodie_padi_apps/screens/notification_screens.dart';
 import 'package:foodie_padi_apps/screens/product_details_screen.dart';
 import 'package:foodie_padi_apps/widgets/build_meal_card.dart';
+import 'package:foodie_padi_apps/widgets/notification_widget.dart';
 import 'package:foodie_padi_apps/widgets/promo_carousel.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -342,7 +345,9 @@ class _FirstScreenState extends State<FirstScreen> {
                       style: TextStyle(fontSize: 14.sp, color: Colors.grey),
                     ),
                   ],
-                )
+                ),
+                Spacer(),
+                NotificationBell(),
               ],
             ),
             SizedBox(height: 16.h),
