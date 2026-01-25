@@ -202,15 +202,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           color: AppColors.primaryOrange)),
                 ),
                 const SizedBox(height: 10),
-                ListTile(
-                  leading: const Icon(
-                    Icons.location_on,
-                    color: AppColors.primaryOrange,
-                  ),
-                  title: Text(user.address?.first.street ?? "No address"),
-                  subtitle: Text(user.address?.first.city ?? "No city"),
-                  trailing: Text(user.address?.first.state ?? "No state"),
-                ),
+                _statTile(
+                    icon: Icons.location_on,
+                    title: user.address?.first.street ?? 'No Address',
+                    value: '1'),
+
                 SizedBox(height: 16.h),
                 Align(
                   alignment: Alignment.centerLeft,
@@ -245,7 +241,10 @@ Widget _statTile({
     elevation: 1,
     child: ListTile(
       leading: Icon(icon, color: AppColors.primaryOrange),
-      title: Text(title),
+      title: Text(
+        title,
+        style: TextStyle(fontWeight: FontWeight.w600),
+      ),
       trailing: Text(
         value,
         style: const TextStyle(fontWeight: FontWeight.bold),

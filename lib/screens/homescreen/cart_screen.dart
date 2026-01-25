@@ -6,6 +6,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:foodie_padi_apps/screens/homescreen/homepage_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:foodie_padi_apps/core/constants/app_colors.dart';
 import 'package:foodie_padi_apps/models/cart/cart_model.dart';
@@ -274,7 +275,10 @@ class _CartScreenState extends State<CartScreen> {
                               style: TextStyle(
                                   fontSize: 18, fontWeight: FontWeight.bold)),
                           InkWell(
-                            onTap: () => Navigator.pop(context),
+                            onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => HomeScreen())),
                             child: Container(
                               decoration: BoxDecoration(
                                   border: Border.all(
