@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:foodie_padi_apps/core/constants/app_colors.dart';
 import 'package:foodie_padi_apps/providers/profile_provider.dart';
+import 'package:foodie_padi_apps/screens/orders_screen.dart';
 import 'package:provider/provider.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -117,6 +118,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     title: "Total Orders",
                     value: profileProvider.orderStat!.totalOrders.toString(),
                     onTap: () {
+                      Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => MyOrdersScreen()));
                       // Navigator.push → OrdersScreen(filter: OrderFilter.all)
                     },
                   ),
@@ -159,69 +162,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
 
                   const SizedBox(height: 12),
+                  // Address
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: const Text("Address",
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryOrange)),
+                  ),
+                  const SizedBox(height: 10),
+                  _statTile(
+                      icon: Icons.location_on,
+                      title: user.address?.first.street ?? 'No Address',
+                      value: user.address!.length.toString()),
+                  Text('LogOut')
 
                   /// Last 7 days orders
-                  const Text(
-                    "Last 7 Days Orders",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-
-                  const SizedBox(height: 6),
-
-                  ...profileProvider.orderStat!.last7DaysOrders.map((day) {
-                    return ListTile(
-                      dense: true,
-                      leading: const Icon(
-                        Icons.calendar_today,
-                        size: 18,
-                        color: AppColors.primaryOrange,
-                      ),
-                      title: Text(day.date),
-                      trailing: Text(
-                        day.orders.toString(),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      onTap: () {
-                        // Optional: show orders for this specific date
-                      },
-                    );
-                  }).toList(),
-                ] else
-                  const Text(
-                    "No order statistics available",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-
-                // Address
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: const Text("Address",
-                      style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryOrange)),
-                ),
-                const SizedBox(height: 10),
-                _statTile(
-                    icon: Icons.location_on,
-                    title: user.address?.first.street ?? 'No Address',
-                    value: '1'),
-
-                SizedBox(height: 16.h),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: const Text("Address",
-                      style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryOrange)),
-                ),
-
-                // Role
-                ListTile(
-                  leading: const Icon(Icons.person),
-                  title: Text("Role: ${user.role ?? 'Unknown'}"),
-                ),
+                ]
               ],
             ),
           ),

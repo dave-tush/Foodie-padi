@@ -35,14 +35,16 @@ class _HomeScreenState extends State<HomeScreen> {
         currentIndex: _currentIndex,
         items: [
           // buttomNavigationBar(icon: Icons.home_outlined, title: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: ''),
           BottomNavigationBarItem(
-              icon: Icon(Icons.explore_outlined), label: ''),
+              icon: Icon(Icons.home_outlined), label: 'Home'),
           BottomNavigationBarItem(
-              icon: Icon(Icons.shopping_cart_outlined), label: ''),
+              icon: Icon(Icons.explore_outlined), label: 'Explore'),
           BottomNavigationBarItem(
-              icon: Icon(Icons.favorite_outline), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: ''),
+              icon: Icon(Icons.shopping_cart_outlined), label: 'Cart'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.favorite_outline), label: 'Favourite'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline), label: 'Profile'),
         ],
       ),
     );

@@ -5,6 +5,7 @@ import 'package:foodie_padi_apps/providers/favourite_provider.dart';
 import 'package:foodie_padi_apps/providers/food_provider.dart';
 import 'package:foodie_padi_apps/providers/notification_provider.dart';
 import 'package:foodie_padi_apps/providers/onboarding_provider.dart';
+import 'package:foodie_padi_apps/providers/order_provider.dart';
 import 'package:foodie_padi_apps/providers/payment_provider.dart';
 import 'package:foodie_padi_apps/providers/profile_provider.dart';
 import 'package:foodie_padi_apps/providers/review_provider.dart';
@@ -20,6 +21,7 @@ import 'package:foodie_padi_apps/screens/vendor_screens/vendor_homescreen.dart';
 import 'package:foodie_padi_apps/services/cart_services.dart';
 import 'package:foodie_padi_apps/services/customer_order_stats_services.dart';
 import 'package:foodie_padi_apps/services/notification_services.dart';
+import 'package:foodie_padi_apps/services/order_service.dart';
 import 'package:foodie_padi_apps/services/payment_service.dart';
 import 'package:foodie_padi_apps/services/product_services.dart';
 import 'package:foodie_padi_apps/services/profile_services.dart';
@@ -55,6 +57,12 @@ void main() async {
       ChangeNotifierProvider(create: (_) => FavouriteProvider()),
       ChangeNotifierProvider(create: (_) => SignUpProvider()),
       ChangeNotifierProvider(create: (_) => RoleProvider()),
+      ChangeNotifierProvider(
+        create: (_) => OrdersProvider(
+          OrderService(
+              baseUrl: dotenv.env['BASE_URL'] ?? 'http://localhost:3000'),
+        ),
+      ),
       ChangeNotifierProvider(
           create: (_) => NotificationProvider(
                   notificationServices: NotificationServices(
@@ -119,7 +127,7 @@ class MyApp extends StatelessWidget {
       ),
       routes: {
         '/vendorHome': (context) => const VendorHomeScreens(),
-        '/orders': (context) => const OrdersScreen(),
+        '/orders': (context) => const MyOrdersScreen(),
         '/addMeal': (context) => const FoodUploadScreen(),
         '/chat': (context) => const ChatScreen(),
         '/profile': (context) => const ProfileScreen(),
